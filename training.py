@@ -242,8 +242,9 @@ net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
 
 graph = tf.get_default_graph()
 
-train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph)
-val_writer = tf.summary.FileWriter('%s/validation_set' % logdir)
+train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph,
+                                     flush_secs=1)
+val_writer = tf.summary.FileWriter('%s/validation_set' % logdir, flush_secs=1)
 
 net_summaries, training_summaries = net_utils.make_summaries()
 
