@@ -12,7 +12,7 @@ from sklearn.utils import shuffle
 import tensorflow as tf
 from tensorflow.python.framework.ops import reset_default_graph
 
-from prepare_data import FEATURE_NAMES
+from data_utils import FEATURE_NAMES
 
 import matplotlib as mpl
 mpl.use('agg')
