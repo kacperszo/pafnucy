@@ -1,6 +1,7 @@
 import numpy as np
 import pybel
-from math import ceil
+from math import ceil, sin, cos, sqrt, pi
+from itertools import combinations
 
 # Remember namse of all features in the correct order
 FEATURE_NAMES = []
@@ -149,6 +150,65 @@ def get_features(molecule, moltype=1.0):
     assert ~np.isnan(features).any(), 'got NaN when calculating features'
 
     return coords, features
+
+
+def rotation_matrix(axis, theta):
+    """Counterclockwise rotation about a given axis by theta radians"""
+    axis = np.asarray(axis)
+    axis = axis/sqrt(np.dot(axis, axis))
+    a = cos(theta/2.0)
+    b, c, d = -axis*sin(theta/2.0)
+    aa, bb, cc, dd = a*a, b*b, c*c, d*d
+    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+    return np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
+                     [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
+                     [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]])
+
+
+# Create matrices for all possible 90* rotations of a box
+ROTATIONS = [rotation_matrix([1, 1, 1], 0)]
+
+# about X, Y and Z - 9 rotations
+for a1 in range(3):
+    for t in range(1, 4):
+        axis = np.zeros(3)
+        axis[a1] = 1
+        theta = t*pi / 2.0
+        ROTATIONS.append(rotation_matrix(axis, theta))
+
+# about each face diagonal - 6 rotations
+for (a1, a2) in combinations(range(3), 2):
+    axis = np.zeros(3)
+    axis[[a1, a2]] = 1.0
+    theta = pi
+    ROTATIONS.append(rotation_matrix(axis, theta))
+    axis[a2] = -1.0
+    ROTATIONS.append(rotation_matrix(axis, theta))
+
+# about each space diagonal - 8 rotations
+for t in [1, 2]:
+    theta = t * 2 * pi / 3
+    axis = np.ones(3)
+    ROTATIONS.append(rotation_matrix(axis, theta))
+    for a1 in range(3):
+        axis = np.ones(3)
+        axis[a1] = -1
+        ROTATIONS.append(rotation_matrix(axis, theta))
+
+
+def rotate(coords, rotation):
+    global ROTATIONS
+
+    if isinstance(rotation, int):
+        if rotation >= 0 and rotation < len(ROTATIONS):
+            return np.dot(coords, ROTATIONS[rotation])
+        else:
+            raise ValueError("Invalid rotation number %s!" % rotation)
+    elif isinstance(rotation, np.ndarray) and rotation.shape == (3, 3):
+        return np.dot(coords, rotation)
+
+    else:
+        raise ValueError("Invalid rotation %s!" % rotation)
 
 
 def make_grid(coords, features, grid_resolution=1.0, max_dist=10.0):

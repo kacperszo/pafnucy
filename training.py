@@ -2,7 +2,6 @@ import numpy as np
 np.random.seed = 123
 
 import pandas as pd
-from itertools import combinations
 from math import ceil, floor, log, sin, cos, sqrt, pi
 import io
 
@@ -100,57 +99,11 @@ print('charges: mean=%s, sd=%s' % (m, std))
 print('use sd as scaling factor')
 
 
-# Read and rotate structures
-# Create matrices for all possible $90^{\circ}$ rotations of a box
-
-def rotation_matrix(axis, theta):
-    """Counterclockwise rotation about a given axis by theta radians"""
-    axis = np.asarray(axis)
-    axis = axis/sqrt(np.dot(axis, axis))
-    a = cos(theta/2.0)
-    b, c, d = -axis*sin(theta/2.0)
-    aa, bb, cc, dd = a*a, b*b, c*c, d*d
-    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
-    return np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
-                     [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
-                     [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]])
-
-
-all_rotations = [rotation_matrix([1, 1, 1], 0)]
-
-# about X, Y and Z - 9 rotations
-for a1 in range(3):
-    for t in range(1, 4):
-        axis = np.zeros(3)
-        axis[a1] = 1
-        theta = t*pi / 2.0
-        all_rotations.append(rotation_matrix(axis, theta))
-
-# about each face diagonal - 6 rotations
-for (a1, a2) in combinations(range(3), 2):
-    axis = np.zeros(3)
-    axis[[a1, a2]] = 1.0
-    theta = pi
-    all_rotations.append(rotation_matrix(axis, theta))
-    axis[a2] = -1.0
-    all_rotations.append(rotation_matrix(axis, theta))
-
-# about each space diagonal - 8 rotations
-for t in [1, 2]:
-    theta = t * 2 * pi / 3
-    axis = np.ones(3)
-    all_rotations.append(rotation_matrix(axis, theta))
-    for a1 in range(3):
-        axis = np.ones(3)
-        axis[a1] = -1
-        all_rotations.append(rotation_matrix(axis, theta))
-
-
 def get_batch(dataset_name, indices, rotation=0):
-    global coords, features, all_rotations, std
+    global coords, features, std
     x = []
     for i, idx in enumerate(indices):
-        coords_idx = np.dot(coords[dataset_name][idx], all_rotations[rotation])
+        coords_idx = data_utils.rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
         x.append(data_utils.make_grid(coords_idx, features_idx,
                  grid_resolution=grid_spacing))
@@ -378,7 +331,7 @@ with tf.Session() as session:
         val_writer.add_summary(summary_mse, global_step.eval())
 
         # SAVE MODEL #
-        print('epoch: %s train error: %s, test error: %s'
+        print('epoch: %s train error: %s, validation error: %s'
               % (epoch, mse_t, mse_v))
 
         if mse_v <= err:
@@ -417,13 +370,15 @@ with tf.Session() as session:
             )
             mse_dataset += weight * mse_batch
 
-        predictions.append(pd.DataFrame(data={'real': affinity[dataset][:, 0],
+        predictions.append(pd.DataFrame(data={'pdbid': ids[dataset],
+                                              'real': affinity[dataset][:, 0],
                                               'predicted': pred[:, 0],
                                               'set': dataset}))
         rmse[dataset] = sqrt(mse_dataset)
 
 
 predictions = pd.concat(predictions, ignore_index=True)
+predictions.to_csv(prefix+'-predictions.csv', index=False)
 
 for set_name, tab in predictions.groupby('set'):
     grid = sns.jointplot('real', 'predicted', data=tab, color=color[set_name],
@@ -432,6 +387,7 @@ for set_name, tab in predictions.groupby('set'):
                                              % (set_name, rmse[dataset])})
 
     image = custom_summary_image(grid.fig)
+    grid.fig.savefig(set_name+'.pdf')
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
                            image=image)
