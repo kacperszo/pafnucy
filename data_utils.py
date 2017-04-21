@@ -1,5 +1,6 @@
 import numpy as np
 import pybel
+from math import ceil
 
 # Remember namse of all features in the correct order
 FEATURE_NAMES = []
@@ -150,7 +151,7 @@ def get_features(molecule, moltype=1.0):
     return coords, features
 
 
-def make_grid(coords, features, grid_resolution=1.0, max_dist=10):
+def make_grid(coords, features, grid_resolution=1.0, max_dist=10.0):
     """Covert atom coordinates and features represented as 2D arrays into a
     fixed-sized 3D box.
 
@@ -172,8 +173,10 @@ def make_grid(coords, features, grid_resolution=1.0, max_dist=10):
     """
 
     num_features = features.shape[1]
+    max_dist = float(max_dist)
+    grid_resolution = float(grid_resolution)
 
-    box_size = int(2 * max_dist / grid_resolution + 1)
+    box_size = ceil(2 * max_dist / grid_resolution + 1)
 
     # move all atoms to the neares grid point
     grid_coords = (coords + max_dist) / grid_resolution
