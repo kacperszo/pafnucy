@@ -177,6 +177,8 @@ def feature_importance_plot(values):
     fig.tight_layout()
 
     image = custom_summary_image(fig)
+    plt.close(fig)
+
     return image
 
 
@@ -189,7 +191,8 @@ def make_summaries():
 
     with tf.name_scope('net_properties'):
         # weights between input and the first layer
-        wconv0 = [v for v in tf.global_variables() if v.name == 'convolution/conv0/w:0'][0]
+        wconv0 = [v for v in tf.global_variables()
+                  if v.name == 'convolution/conv0/w:0'][0]
         feature_weights = tf.split(wconv0, in_chnls, axis=3)
         feature_importance = tf.reduce_sum(tf.abs(wconv0),
                                            reduction_indices=[0, 1, 2, 4],
