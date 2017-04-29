@@ -2,21 +2,18 @@ import numpy as np
 np.random.seed = 123
 
 import pandas as pd
-from math import ceil, floor, log, sin, cos, sqrt, pi
-import io
+from math import sqrt
 
 import h5py
 
 from sklearn.utils import shuffle
 import tensorflow as tf
-from tensorflow.python.framework.ops import reset_default_graph
 
 import data_utils
 import net_utils
 
 import matplotlib as mpl
 mpl.use('agg')
-import matplotlib.pyplot as plt
 
 import seaborn as sns
 sns.set_style('white')

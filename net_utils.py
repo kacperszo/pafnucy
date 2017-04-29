@@ -1,16 +1,10 @@
 import numpy as np
 np.random.seed = 123
 
-import pandas as pd
-from itertools import combinations
-from math import ceil, floor, log, sin, cos, sqrt, pi
+from math import ceil
 import io
 
-import h5py
-
-from sklearn.utils import shuffle
 import tensorflow as tf
-from tensorflow.python.framework.ops import reset_default_graph
 
 from data_utils import FEATURE_NAMES
 
