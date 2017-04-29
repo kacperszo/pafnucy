@@ -300,13 +300,6 @@ with tf.Session() as session:
                                histo=custom_summary_histogram(pred_t))
         train_writer.add_summary(summary_pred, global_step.eval())
 
-        # feature importance
-        summary_imp = tf.Summary()
-        feature_imp = session.run(feature_importance)
-        image = feature_importance_plot(feature_imp)
-        summary_imp.value.add(tag='feature_importance', image=image)
-        train_writer.add_summary(summary_imp, global_step.eval())
-
         # validation set error
         mse_v = 0
         for b in range(num_batches['validation']):
@@ -334,6 +327,13 @@ with tf.Session() as session:
         if mse_v <= err:
             err = mse_v
             checkpoint = saver.save(session, prefix, global_step=global_step)
+
+            # feature importance
+            summary_imp = tf.Summary()
+            feature_imp = session.run(feature_importance)
+            image = feature_importance_plot(feature_imp)
+            summary_imp.value.add(tag='feature_importance', image=image)
+            train_writer.add_summary(summary_imp, global_step.eval())
 
 
 # FINAL PREDICTIONS
