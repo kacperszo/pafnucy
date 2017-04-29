@@ -168,7 +168,7 @@ num_epochs = 20
 to_keep = 10
 
 print('\n---- MODEL ----\n')
-print(isize-1, 'A box')
+print((isize-1) * grid_spacing, 'A box')
 print(in_chnls, 'features')
 print('')
 print('convolutional layers: %s channels, %sA patch + max pooling with %sA patch'
