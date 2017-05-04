@@ -26,38 +26,12 @@ timestamp = time.strftime('%Y-%m-%dT%H:%M:%S')
 path = '../pdbbind/v2016/'
 logdir = './logdir/' + timestamp
 fname = './pdbbind_20a_19f_relu_kp%s_lmb%s_f%s_c%s_lr%s_' + timestamp
-vsize = 1000
 grid_spacing = 1.0
 
 print('\n---- FEATURES ----\n')
 print('atomic properties:', data_utils.FEATURE_NAMES)
 
 columns = {name: i for i, name in enumerate(data_utils.FEATURE_NAMES)}
-
-
-# # uncomment this part to create files with the training and validation sets
-# with h5py.File('%s/training_set.hdf' % path, 'w') as g, \
-#      h5py.File('%s/validation_set.hdf' % path, 'w') as h:
-#     with h5py.File('%s/refined.hdf' % path, 'r') as f:
-#         print('refined')
-#         refined_shuffled = shuffle(list(f.keys()), random_state=123)
-#         for pdb_id in refined_shuffled[:vsize]:
-#             ds = h.create_dataset(pdb_id, data=f[pdb_id])
-#             ds.attrs['affinity'] = f[pdb_id].attrs['affinity']
-#         for pdb_id in refined_shuffled[vsize:]:
-#             ds = g.create_dataset(pdb_id, data=f[pdb_id])
-#             ds.attrs['affinity'] = f[pdb_id].attrs['affinity']
-#     with h5py.File('%s/general.hdf' % path, 'r') as f:
-#         print('general')
-#         for pdb_id in f:
-#             ds = g.create_dataset(pdb_id, data=f[pdb_id])
-#             ds.attrs['affinity'] = f[pdb_id].attrs['affinity']
-
-# # uncomment this part to create a symlink for the test set
-# print('core')
-# import os
-# os.symlink(os.path.abspath('%s/core.hdf' % path), '%s/test_set.hdf' % path)
-
 
 datasets = ['training', 'validation', 'test']
 
