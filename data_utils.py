@@ -129,11 +129,12 @@ def get_features(molecule, moltype=1.0):
 
     coords = []
     features = []
-    nonH = []
-    i = 0
-    for atom in molecule:
-        if atom.atomicnum != 1:
-            nonH.append(i)
+    heavy_atoms = []
+
+    for i, atom in enumerate(molecule):
+        # ignore hydrogens and dummy atoms (they have atomicnum set to 0)
+        if atom.atomicnum > 1:
+            heavy_atoms.append(i)
             coords.append(atom.coords)
 
             features.append(
@@ -141,11 +142,10 @@ def get_features(molecule, moltype=1.0):
                 + [atom.__getattribute__(prop) for prop in PYBEL_PROPS]
                 + [moltype]
             )
-        i += 1
 
     coords = np.array(coords, dtype=np.float32)
     features = np.array(features, dtype=np.float32)
-    features = np.hstack([features, find_smarts(molecule)[nonH]])
+    features = np.hstack([features, find_smarts(molecule)[heavy_atoms]])
 
     assert ~np.isnan(features).any(), 'got NaN when calculating features'
 
