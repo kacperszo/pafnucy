@@ -23,10 +23,55 @@ color = {'training': 'b', 'validation': 'g', 'test': 'r'}
 
 import time
 timestamp = time.strftime('%Y-%m-%dT%H:%M:%S')
-path = '../pdbbind/v2016/'
-logdir = './logdir/' + timestamp
-fname = './pdbbind_20a_19f_relu_kp%s_lmb%s_f%s_c%s_lr%s_' + timestamp
-grid_spacing = 1.0
+
+import argparse
+parser = argparse.ArgumentParser(
+    description='Train 3D colnvolutional neural network on affinity data',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+io_group = parser.add_argument_group('I/O')
+io_group.add_argument('--input_dir', '-i', default='../pdbbind/v2016/',
+                      help='directory with training, validation and test sets')
+io_group.add_argument('--log_dir', '-l', default='./logdir/',
+                      help='directory to store tensorboard summaries')
+io_group.add_argument('--output_prefix', '-o', default='./output',
+                      help='prefix for checkpoints, predictions and plots')
+io_group.add_argument('--grid_spacing', '-g', default=1.0, type=float,
+                      help='distance between grid points')
+
+arc_group = parser.add_argument_group('Netwrok architecture')
+arc_group.add_argument('--conv_patch', default=5, type=int,
+                       help='patch size for convolutional layers')
+arc_group.add_argument('--pool_patch', default=2, type=int,
+                       help='patch size for pooling layers')
+arc_group.add_argument('--conv_channels', metavar='C', default=[64, 128, 256],
+                       type=int, nargs='+',
+                       help='number of fileters in convolutional layers')
+arc_group.add_argument('--dense_sizes', metavar='D', default=[1000, 500, 200],
+                       type=int, nargs='+',
+                       help='number of neurons in dense layers')
+
+reg_group = parser.add_argument_group('Regularization')
+reg_group.add_argument('--keep_prob', dest='kp', default=0.5, type=float,
+                       help='keep probability for dropout')
+reg_group.add_argument('--l2', dest='lmbda', default=0.001, type=float,
+                       help='lambda for weight decay')
+
+tr_group = parser.add_argument_group('Training')
+tr_group.add_argument('--learning_rate', default=1e-5, type=float,
+                      help='learning rate')
+tr_group.add_argument('--batch_size', default=20, type=int,
+                      help='batch size')
+tr_group.add_argument('--num_epochs', default=20, type=int,
+                      help='number of epochs')
+tr_group.add_argument('--num_checkpoints', dest='to_keep', default=10, type=int,
+                      help='number of checkpoints to keep')
+
+args = parser.parse_args()
+
+logdir = args.log_dir + '/' + timestamp
+fname = args.output_prefix + '_kp%s_lmb%s_f%s_c%s_lr%s_' + timestamp
 
 print('\n---- FEATURES ----\n')
 print('atomic properties:', data_utils.FEATURE_NAMES)
@@ -45,7 +90,7 @@ for dictionary in [ids, affinity, coords, features]:
         dictionary[dataset_name] = []
 
 for dataset_name in datasets:
-    with h5py.File('%s/%s_set.hdf' % (path, dataset_name), 'r') as f:
+    with h5py.File('%s/%s_set.hdf' % (args.input_dir, dataset_name), 'r') as f:
         for pdb_id in f:
             dataset = f[pdb_id]
 
@@ -78,7 +123,7 @@ def get_batch(dataset_name, indices, rotation=0):
         coords_idx = data_utils.rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
         x.append(data_utils.make_grid(coords_idx, features_idx,
-                 grid_resolution=grid_spacing))
+                 grid_resolution=args.grid_spacing))
     x = np.vstack(x)
     x[..., columns['partialcharge']] /= std
     return x
@@ -122,47 +167,34 @@ osize = 1
 for set_name, set_size in ds_sizes.items():
     print('%s %s samples' % (set_size, set_name))
 
-# convolutional layers
-conv_patch = 5
-pool_patch = 2
-conv_channels = [64, 128, 256]
-
-# fully connected layers
-hsizes = [1000, 500, 200]
-
-# regularization
-kp = 0.5          # dropout
-lmbda = 0.001       # weight decay
-
-# training
-learning_rate = 1e-5
-batch_size = 20
-num_batches = {dataset: size // batch_size
+num_batches = {dataset: size // args.batch_size
                for dataset, size in ds_sizes.items()}
-num_epochs = 20
-to_keep = 10
 
 print('\n---- MODEL ----\n')
-print((isize-1) * grid_spacing, 'A box')
+print((isize-1) * args.grid_spacing, 'A box')
 print(in_chnls, 'features')
 print('')
 print('convolutional layers: %s channels, %sA patch + max pooling with %sA patch'
-      % (', '.join((str(i) for i in conv_channels)), conv_patch, pool_patch))
-print('fully connected layers:', ', '.join((str(i) for i in hsizes)), 'neurons')
-print('regularization: dropout (keep %s) and L2 (lambda %s)' % (kp, lmbda))
+      % (', '.join((str(i) for i in args.conv_channels)), args.conv_patch,
+         args.pool_patch))
+print('fully connected layers:', ', '.join((str(i) for i in args.dense_sizes)),
+      'neurons')
+print('regularization: dropout (keep %s) and L2 (lambda %s)'
+      % (args.kp, args.lmbda))
 print('')
-print('learning rate', learning_rate)
-print(num_batches['training'], 'batches,', batch_size, 'examples each')
+print('learning rate', args.learning_rate)
+print(num_batches['training'], 'batches,', args.batch_size, 'examples each')
 print(num_batches['validation'], 'validation batches')
 print(num_batches['test'], 'test batches')
 print('')
-print(num_epochs, 'epochs, best', to_keep, 'saved')
+print(args.num_epochs, 'epochs, best', args.to_keep, 'saved')
 
 net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
-                       conv_patch=conv_patch, pool_patch=pool_patch,
-                       conv_channels=conv_channels,
-                       hsizes=hsizes,
-                       kp=kp, lmbda=lmbda, learning_rate=learning_rate)
+                       conv_patch=args.conv_patch, pool_patch=args.pool_patch,
+                       conv_channels=args.conv_channels,
+                       dense_sizes=args.dense_sizes,
+                       kp=args.kp, lmbda=args.lmbda,
+                       learning_rate=args.learning_rate)
 
 
 graph = tf.get_default_graph()
@@ -177,11 +209,11 @@ net_summaries, training_summaries = net_utils.make_summaries()
 from net_utils import *
 
 
-convs = '_'.join((str(i) for i in conv_channels))
-fcs = '_'.join((str(i) for i in hsizes))
+convs = '_'.join((str(i) for i in args.conv_channels))
+fcs = '_'.join((str(i) for i in args.dense_sizes))
 
-saver = tf.train.Saver(max_to_keep=to_keep)
-prefix = fname % (kp, lmbda, fcs, convs, learning_rate)
+saver = tf.train.Saver(max_to_keep=args.to_keep)
+prefix = fname % (args.kp, args.lmbda, fcs, convs, args.learning_rate)
 
 err = float('inf')
 
@@ -198,8 +230,8 @@ with tf.Session() as session:
 
     stats_net = session.run(
         net_summaries,
-        feed_dict={x: get_batch('training', range(batch_size)),
-                   t: affinity['training'][:batch_size],
+        feed_dict={x: get_batch('training', range(args.batch_size)),
+                   t: affinity['training'][:args.batch_size],
                    keep_prob: 1.0}
     )
 
@@ -212,21 +244,21 @@ with tf.Session() as session:
             x_t, y_t = shuffle(range(ds_sizes['training']), affinity['training'])
 
             for b in range(num_batches['training']):
-                bi = b*batch_size
-                bj = (b+1)*batch_size
+                bi = b*args.batch_size
+                bj = (b+1)*args.batch_size
                 if b == num_batches['training'] - 1:
                     bj = ds_sizes['training']
 
                 session.run(train, feed_dict={x: get_batch('training',
                                                            x_t[bi:bj],
                                                            rotation),
-                                              t: y_t[bi:bj], keep_prob: kp})
+                                              t: y_t[bi:bj], keep_prob: args.kp})
 
             # SAVE STATS - per rotation #
             stats_t, stats_net = session.run(
                 [training_summaries, net_summaries],
-                feed_dict={x: get_batch('training', x_t[:batch_size]),
-                           t: y_t[:batch_size],
+                feed_dict={x: get_batch('training', x_t[:args.batch_size]),
+                           t: y_t[:args.batch_size],
                            keep_prob: 1.0}
             )
 
@@ -235,8 +267,8 @@ with tf.Session() as session:
 
             stats_v = session.run(
                 training_summaries,
-                feed_dict={x: get_batch('validation', range(batch_size)),
-                           t: affinity['validation'][:batch_size],
+                feed_dict={x: get_batch('validation', range(args.batch_size)),
+                           t: affinity['validation'][:args.batch_size],
                            keep_prob: 1.0}
             )
 
@@ -248,8 +280,8 @@ with tf.Session() as session:
         mse_t = np.zeros(num_batches['training'])
 
         for b in range(num_batches['training']):
-            bi = b*batch_size
-            bj = (b+1)*batch_size
+            bi = b*args.batch_size
+            bj = (b+1)*args.batch_size
             if b == num_batches['training'] - 1:
                 bj = ds_sizes['training']
             weight = (bj-bi) / ds_sizes['training']
@@ -278,8 +310,8 @@ with tf.Session() as session:
         # validation set error
         mse_v = 0
         for b in range(num_batches['validation']):
-            bi = b*batch_size
-            bj = (b+1)*batch_size
+            bi = b*args.batch_size
+            bj = (b+1)*args.batch_size
             if b == num_batches['validation'] - 1:
                 bj = ds_sizes['validation']
 
@@ -328,8 +360,8 @@ with tf.Session() as session:
         mse_dataset = 0.0
 
         for b in range(num_batches[dataset]):
-            bi = b*batch_size
-            bj = (b+1)*batch_size
+            bi = b*args.batch_size
+            bj = (b+1)*args.batch_size
             if b == num_batches[dataset] - 1:
                 bj = ds_sizes[dataset]
 
