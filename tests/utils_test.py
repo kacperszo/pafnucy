@@ -2,7 +2,9 @@ import unittest
 
 import pybel
 import numpy as np
-np.random.seed(123)
+
+import tensorflow as tf
+import math
 
 import sys
 sys.path.append('/'.join(sys.path[0].split('/')[:-1]))
@@ -21,6 +23,8 @@ class DataUtilsTests(unittest.TestCase):
             pocket = pybel.readfile('mol2', '%s/%s_pocket.mol2'
                                     % (directory, pdb_id))
             self.complexes.append((pocket, ligand))
+
+        np.random.seed(123)
 
     def tearDown(self):
         self.complexes = None
@@ -89,6 +93,40 @@ class DataUtilsTests(unittest.TestCase):
                         else:
                             self.assertTrue((np.sum(grid, axis=list(range(4)))
                                             == np.sum(features, axis=0)).all())
+
+
+class NetUtilsTests(unittest.TestCase):
+
+    def setUp(self):
+        self.x = tf.placeholder(tf.float32, shape=(None, 21, 21, 21, 19))
+        self.flat = tf.placeholder(tf.float32, shape=(None, 100))
+        self.t = tf.placeholder(tf.float32, shape=(None, 1))
+
+    def tearDown(self):
+        tf.reset_default_graph()
+
+    def test_hidden_conv(self):
+        from net_utils import hidden_conv
+
+        for out_chnls in [8, 16]:
+            for pool_patch in [2, 3]:
+                for conv_patch in [2, 5, 10]:
+                    h, _ = hidden_conv(self.x, out_chnls, conv_patch=conv_patch,
+                                       pool_patch=pool_patch)
+                    shape = h.get_shape().as_list()
+                    s = math.ceil(21 / pool_patch)
+                    self.assertListEqual(shape, [None, s, s, s, out_chnls])
+
+    def test_hidden_fcl(self):
+        from net_utils import hidden_fcl
+
+        keep_prob = tf.placeholder(tf.float32)
+
+        for out_chnls in [8, 16]:
+            h, _ = hidden_fcl(self.flat, out_chnls, keep_prob)
+            shape = h.get_shape().as_list()
+            self.assertListEqual(shape, [None, out_chnls])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
