@@ -67,11 +67,11 @@ def convolve(inp, channels):
     return output, tf.reduce_sum(weights)
 
 
-def feedforward(inp, hsizes, keep_prob=1.0):
+def feedforward(inp, dense_sizes, keep_prob=1.0):
     prev = inp
     weights = []
     i = 0
-    for hsize in hsizes:
+    for hsize in dense_sizes:
         output, w_sum = hidden_fcl(prev, hsize, keep_prob, name='fc%s' % i)
         i += 1
         weights.append(w_sum)
@@ -81,7 +81,7 @@ def feedforward(inp, hsizes, keep_prob=1.0):
 
 def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
                  conv_patch=5, pool_patch=2, conv_channels=[64, 128, 256],
-                 hsizes=[1000, 500, 200],
+                 dense_sizes=[1000, 500, 200],
                  kp=0.5, lmbda=0.001, learning_rate=1e-5):
 
     global x, t, y
@@ -107,11 +107,11 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
 
         keep_prob = tf.placeholder(tf.float32)
 
-        h_fcl, w_sum_fcl = feedforward(h_flat, hsizes, keep_prob=keep_prob)
+        h_fcl, w_sum_fcl = feedforward(h_flat, dense_sizes, keep_prob=keep_prob)
 
     with tf.name_scope('output'):
-        w = tf.Variable(tf.truncated_normal(shape=(hsizes[-1], osize),
-                        stddev=(1 / (hsizes[-1]**0.5))), name='w')
+        w = tf.Variable(tf.truncated_normal(shape=(dense_sizes[-1], osize),
+                        stddev=(1 / (dense_sizes[-1]**0.5))), name='w')
         b = tf.Variable(np.ones((osize,), dtype=np.float32), name='b')
         y = tf.nn.relu(tf.matmul(h_fcl, w) + b, name='prediction')
 
