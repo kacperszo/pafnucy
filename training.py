@@ -237,7 +237,7 @@ with tf.Session() as session:
 
     train_writer.add_summary(stats_net, 0)
 
-    for epoch in range(num_epochs):
+    for epoch in range(args.num_epochs):
         for rotation in range(24):
             print('rotation', rotation)
             # TRAIN #
