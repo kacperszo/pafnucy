@@ -57,6 +57,9 @@ reg_group.add_argument('--keep_prob', dest='kp', default=0.5, type=float,
                        help='keep probability for dropout')
 reg_group.add_argument('--l2', dest='lmbda', default=0.001, type=float,
                        help='lambda for weight decay')
+reg_group.add_argument('--rotations', metavar='R', default=list(range(24)),
+                       type=int, nargs='+',
+                       help='rotations to perform')
 
 tr_group = parser.add_argument_group('Training')
 tr_group.add_argument('--learning_rate', default=1e-5, type=float,
@@ -189,7 +192,7 @@ print(num_batches['test'], 'test batches')
 print('')
 print(args.num_epochs, 'epochs, best', args.to_keep, 'saved')
 
-net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
+graph = net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
                        conv_patch=args.conv_patch, pool_patch=args.pool_patch,
                        conv_channels=args.conv_channels,
                        dense_sizes=args.dense_sizes,
@@ -197,34 +200,38 @@ net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
                        learning_rate=args.learning_rate)
 
 
-graph = tf.get_default_graph()
-
 train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph,
                                      flush_secs=1)
 val_writer = tf.summary.FileWriter('%s/validation_set' % logdir, flush_secs=1)
 
-net_summaries, training_summaries = net_utils.make_summaries()
+net_summaries, training_summaries = net_utils.make_summaries(graph)
 
-# import all tensors created with make_network and make_summaries
-from net_utils import *
-
+x = graph.get_tensor_by_name('input/structure:0')
+y = graph.get_tensor_by_name('output/prediction:0')
+t = graph.get_tensor_by_name('input/affinity:0')
+keep_prob = graph.get_tensor_by_name('fully_connected/keep_prob:0')
+train = graph.get_tensor_by_name('training/train:0')
+mse = graph.get_tensor_by_name('training/mse:0')
+feature_importance = graph.get_tensor_by_name('net_properties/feature_importance:0')
+global_step = graph.get_tensor_by_name('training/global_step:0')
 
 convs = '_'.join((str(i) for i in args.conv_channels))
 fcs = '_'.join((str(i) for i in args.dense_sizes))
 
-saver = tf.train.Saver(max_to_keep=args.to_keep)
+with graph.as_default():
+    saver = tf.train.Saver(max_to_keep=args.to_keep)
 prefix = fname % (args.kp, args.lmbda, fcs, convs, args.learning_rate)
 
 err = float('inf')
 
 print('\n---- TRAINING ----\n')
-with tf.Session() as session:
+with tf.Session(graph=graph) as session:
     tf.set_random_seed(123)
     session.run(tf.global_variables_initializer())
 
     summary_imp = tf.Summary()
     feature_imp = session.run(feature_importance)
-    image = feature_importance_plot(feature_imp)
+    image = net_utils.feature_importance_plot(feature_imp)
     summary_imp.value.add(tag='feature_importance_%s' % 0, image=image)
     train_writer.add_summary(summary_imp, 0)
 
@@ -238,7 +245,7 @@ with tf.Session() as session:
     train_writer.add_summary(stats_net, 0)
 
     for epoch in range(args.num_epochs):
-        for rotation in range(24):
+        for rotation in args.rotations:
             print('rotation', rotation)
             # TRAIN #
             x_t, y_t = shuffle(range(ds_sizes['training']), affinity['training'])
@@ -304,7 +311,7 @@ with tf.Session() as session:
         # predictions distribution
         summary_pred = tf.Summary()
         summary_pred.value.add(tag='predictions_all',
-                               histo=custom_summary_histogram(pred_t))
+                               histo=net_utils.custom_summary_histogram(pred_t))
         train_writer.add_summary(summary_pred, global_step.eval())
 
         # validation set error
@@ -338,7 +345,7 @@ with tf.Session() as session:
             # feature importance
             summary_imp = tf.Summary()
             feature_imp = session.run(feature_importance)
-            image = feature_importance_plot(feature_imp)
+            image = net_utils.feature_importance_plot(feature_imp)
             summary_imp.value.add(tag='feature_importance', image=image)
             train_writer.add_summary(summary_imp, global_step.eval())
 
@@ -349,7 +356,7 @@ with tf.Session() as session:
 predictions = []
 rmse = {}
 
-with tf.Session() as session:
+with tf.Session(graph=graph) as session:
     tf.set_random_seed(123)
 
     saver.restore(session, './'+checkpoint)
@@ -390,7 +397,7 @@ for set_name, tab in predictions.groupby('set'):
                          annot_kws={'title': '%s set (rmse=%.3f)'
                                              % (set_name, rmse[dataset])})
 
-    image = custom_summary_image(grid.fig)
+    image = net_utils.custom_summary_image(grid.fig)
     grid.fig.savefig('%s_%s.pdf' % (set_name, timestamp))
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
