@@ -3,12 +3,14 @@ image: continuumio/miniconda3
 unit:
   script:
   - conda install -y python=3.5 numpy scipy matplotlib seaborn h5py pandas scikit-learn
-  - conda install -y -c marta-sd tensorflow openbabel
+  - conda install -y -c marta-sd openbabel
+  - conda install -y -c conda-forge tensorflow=1.0
   - python -m unittest tests/utils_test.py
 
 training:
   script:
   - conda install -y python=3.5 numpy scipy matplotlib seaborn h5py pandas scikit-learn
-  - conda install -y -c marta-sd tensorflow openbabel
+  - conda install -y -c marta-sd openbabel
+  - conda install -y -c conda-forge tensorflow=1.0
   - python training.py -i tests/data/dataset/ -o "test" --conv_channels 2 3 --dense_sizes 20 20 --num_epochs 2 --rotations 0 1 
 
