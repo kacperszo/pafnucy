@@ -84,55 +84,55 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
                  dense_sizes=[1000, 500, 200],
                  kp=0.5, lmbda=0.001, learning_rate=1e-5):
 
-    global x, t, y
-    global h_convs, keep_prob, h_fcl
-    global mse, l2, cost, train, global_step
+    graph = tf.Graph()
 
-    with tf.name_scope('input'):
-        x = tf.placeholder(tf.float32,
-                           shape=(None, isize, isize, isize, in_chnls),
-                           name='structure')
-        t = tf.placeholder(tf.float32, shape=(None, osize), name='affinity')
+    with graph.as_default():
+        with tf.name_scope('input'):
+            x = tf.placeholder(tf.float32,
+                               shape=(None, isize, isize, isize, in_chnls),
+                               name='structure')
+            t = tf.placeholder(tf.float32, shape=(None, osize), name='affinity')
 
-    with tf.name_scope('convolution'):
-        h_convs, w_sum_conv = convolve(x, conv_channels)
+        with tf.name_scope('convolution'):
+            h_convs, w_sum_conv = convolve(x, conv_channels)
 
-    hfsize = isize
-    for _ in range(len(conv_channels)):
-        hfsize = ceil(hfsize / pool_patch)
-    hfsize = conv_channels[-1] * hfsize**3
+        hfsize = isize
+        for _ in range(len(conv_channels)):
+            hfsize = ceil(hfsize / pool_patch)
+        hfsize = conv_channels[-1] * hfsize**3
 
-    with tf.name_scope('fully_connected'):
-        h_flat = tf.reshape(h_convs, shape=(-1, hfsize), name='h_flat')
+        with tf.name_scope('fully_connected'):
+            h_flat = tf.reshape(h_convs, shape=(-1, hfsize), name='h_flat')
 
-        keep_prob = tf.placeholder(tf.float32)
+            keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
-        h_fcl, w_sum_fcl = feedforward(h_flat, dense_sizes, keep_prob=keep_prob)
+            h_fcl, w_sum_fcl = feedforward(h_flat, dense_sizes, keep_prob=keep_prob)
 
-    with tf.name_scope('output'):
-        w = tf.Variable(tf.truncated_normal(shape=(dense_sizes[-1], osize),
-                        stddev=(1 / (dense_sizes[-1]**0.5))), name='w')
-        b = tf.Variable(np.ones((osize,), dtype=np.float32), name='b')
-        y = tf.nn.relu(tf.matmul(h_fcl, w) + b, name='prediction')
+        with tf.name_scope('output'):
+            w = tf.Variable(tf.truncated_normal(shape=(dense_sizes[-1], osize),
+                            stddev=(1 / (dense_sizes[-1]**0.5))), name='w')
+            b = tf.Variable(np.ones((osize,), dtype=np.float32), name='b')
+            y = tf.nn.relu(tf.matmul(h_fcl, w) + b, name='prediction')
 
-    with tf.name_scope('training'):
-        global_step = tf.Variable(0, trainable=False, name='global_step')
+        with tf.name_scope('training'):
+            global_step = tf.Variable(0, trainable=False, name='global_step')
 
-        mse = tf.reduce_mean(tf.pow((y - t), 2), name='mse')
+            mse = tf.reduce_mean(tf.pow((y - t), 2), name='mse')
 
-        with tf.name_scope('L2_cost'):
-            l2 = lmbda * (w_sum_conv + w_sum_fcl + tf.reduce_sum(tf.pow(w, 2)))
+            with tf.name_scope('L2_cost'):
+                l2 = lmbda * (w_sum_conv + w_sum_fcl + tf.reduce_sum(tf.pow(w, 2)))
 
-        with tf.name_scope('cost'):
-            cost = mse + l2
+            cost = tf.add(mse, l2, name='cost')
 
-        optimizer = tf.train.AdamOptimizer(learning_rate, name='optimizer')
-        train = optimizer.minimize(cost, global_step=global_step)
+            optimizer = tf.train.AdamOptimizer(learning_rate, name='optimizer')
+            train = optimizer.minimize(cost, global_step=global_step, name='train')
 
-    tf.add_to_collection('output', y)
-    tf.add_to_collection('input', x)
-    tf.add_to_collection('target', t)
-    tf.add_to_collection('kp', keep_prob)
+    graph.add_to_collection('output', y)
+    graph.add_to_collection('input', x)
+    graph.add_to_collection('target', t)
+    graph.add_to_collection('kp', keep_prob)
+
+    return graph
 
 
 def custom_summary_histogram(values):
@@ -176,32 +176,30 @@ def feature_importance_plot(values):
     return image
 
 
-def make_summaries():
+def make_summaries(graph):
     global FEATURE_NAMES
 
     in_chnls = len(FEATURE_NAMES)
 
-    global feature_importance
+    with graph.as_default():
+        with tf.name_scope('net_properties'):
+            # weights between input and the first layer
+            wconv0 = graph.get_tensor_by_name('convolution/conv0/w:0')
+            feature_weights = tf.split(wconv0, in_chnls, axis=3)
+            feature_importance = tf.reduce_sum(tf.abs(wconv0),
+                                               reduction_indices=[0, 1, 2, 4],
+                                               name='feature_importance')
 
-    with tf.name_scope('net_properties'):
-        # weights between input and the first layer
-        wconv0 = [v for v in tf.global_variables()
-                  if v.name == 'convolution/conv0/w:0'][0]
-        feature_weights = tf.split(wconv0, in_chnls, axis=3)
-        feature_importance = tf.reduce_sum(tf.abs(wconv0),
-                                           reduction_indices=[0, 1, 2, 4],
-                                           name='feature_importance')
+        net_summaries = tf.summary.merge((
+            tf.summary.histogram('weights', wconv0),
+            *(tf.summary.histogram('weights_%s' % name, value)
+              for name, value in zip(FEATURE_NAMES, feature_weights)),
+            tf.summary.histogram('predictions', graph.get_tensor_by_name('output/prediction:0'))
+        ))
 
-    net_summaries = tf.summary.merge((
-        tf.summary.histogram('weights', wconv0),
-        *(tf.summary.histogram('weights_%s' % name, value)
-          for name, value in zip(FEATURE_NAMES, feature_weights)),
-        tf.summary.histogram('predictions', y)
-    ))
-
-    training_summaries = tf.summary.merge((
-        tf.summary.scalar('mse', mse),
-        tf.summary.scalar('cost', cost)
-    ))
+        training_summaries = tf.summary.merge((
+            tf.summary.scalar('mse', graph.get_tensor_by_name('training/mse:0')),
+            tf.summary.scalar('cost', graph.get_tensor_by_name('training/cost:0'))
+        ))
 
     return net_summaries, training_summaries
