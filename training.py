@@ -9,8 +9,7 @@ import h5py
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-import data_utils
-import net_utils
+import utils
 
 import matplotlib as mpl
 mpl.use('agg')
@@ -77,9 +76,9 @@ logdir = args.log_dir + '/' + timestamp
 prefix = args.output_prefix + '-' + timestamp
 
 print('\n---- FEATURES ----\n')
-print('atomic properties:', data_utils.FEATURE_NAMES)
+print('atomic properties:', utils.data.FEATURE_NAMES)
 
-columns = {name: i for i, name in enumerate(data_utils.FEATURE_NAMES)}
+columns = {name: i for i, name in enumerate(utils.data.FEATURE_NAMES)}
 
 datasets = ['training', 'validation', 'test']
 
@@ -123,9 +122,9 @@ def get_batch(dataset_name, indices, rotation=0):
     global coords, features, std
     x = []
     for i, idx in enumerate(indices):
-        coords_idx = data_utils.rotate(coords[dataset_name][idx], rotation)
+        coords_idx = utils.data.rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
-        x.append(data_utils.make_grid(coords_idx, features_idx,
+        x.append(utils.data.make_grid(coords_idx, features_idx,
                  grid_resolution=args.grid_spacing))
     x = np.vstack(x)
     x[..., columns['partialcharge']] /= std
@@ -192,7 +191,7 @@ print(num_batches['test'], 'test batches')
 print('')
 print(args.num_epochs, 'epochs, best', args.to_keep, 'saved')
 
-graph = net_utils.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
+graph = utils.net.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
                        conv_patch=args.conv_patch, pool_patch=args.pool_patch,
                        conv_channels=args.conv_channels,
                        dense_sizes=args.dense_sizes,
@@ -204,7 +203,7 @@ train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph,
                                      flush_secs=1)
 val_writer = tf.summary.FileWriter('%s/validation_set' % logdir, flush_secs=1)
 
-net_summaries, training_summaries = net_utils.make_summaries(graph)
+net_summaries, training_summaries = utils.net.make_summaries(graph)
 
 x = graph.get_tensor_by_name('input/structure:0')
 y = graph.get_tensor_by_name('output/prediction:0')
@@ -231,7 +230,7 @@ with tf.Session(graph=graph) as session:
 
     summary_imp = tf.Summary()
     feature_imp = session.run(feature_importance)
-    image = net_utils.feature_importance_plot(feature_imp)
+    image = utils.net.feature_importance_plot(feature_imp)
     summary_imp.value.add(tag='feature_importance_%s' % 0, image=image)
     train_writer.add_summary(summary_imp, 0)
 
@@ -311,7 +310,7 @@ with tf.Session(graph=graph) as session:
         # predictions distribution
         summary_pred = tf.Summary()
         summary_pred.value.add(tag='predictions_all',
-                               histo=net_utils.custom_summary_histogram(pred_t))
+                               histo=utils.net.custom_summary_histogram(pred_t))
         train_writer.add_summary(summary_pred, global_step.eval())
 
         # validation set error
@@ -345,7 +344,7 @@ with tf.Session(graph=graph) as session:
             # feature importance
             summary_imp = tf.Summary()
             feature_imp = session.run(feature_importance)
-            image = net_utils.feature_importance_plot(feature_imp)
+            image = utils.net.feature_importance_plot(feature_imp)
             summary_imp.value.add(tag='feature_importance', image=image)
             train_writer.add_summary(summary_imp, global_step.eval())
 
@@ -397,7 +396,7 @@ for set_name, tab in predictions.groupby('set'):
                          annot_kws={'title': '%s set (rmse=%.3f)'
                                              % (set_name, rmse[dataset])})
 
-    image = net_utils.custom_summary_image(grid.fig)
+    image = utils.net.custom_summary_image(grid.fig)
     grid.fig.savefig('%s-%s.pdf' % (prefix, set_name))
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),

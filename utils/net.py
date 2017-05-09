@@ -6,7 +6,7 @@ import io
 
 import tensorflow as tf
 
-from data_utils import FEATURE_NAMES
+from utils.data import FEATURE_NAMES
 
 import matplotlib as mpl
 mpl.use('agg')

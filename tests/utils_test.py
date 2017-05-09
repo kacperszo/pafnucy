@@ -30,7 +30,7 @@ class DataUtilsTests(unittest.TestCase):
         self.complexes = None
 
     def test_encode_num(self):
-        from data_utils import encode_num
+        from utils.data import encode_num
 
         for mols in self.complexes:
             for mol in mols:
@@ -41,7 +41,7 @@ class DataUtilsTests(unittest.TestCase):
                         self.assertEqual(encoding.sum(), 1.0)
 
     def test_find_smarts(self):
-        from data_utils import find_smarts
+        from utils.data import find_smarts
 
         for mols in self.complexes:
             for mol in mols:
@@ -49,7 +49,7 @@ class DataUtilsTests(unittest.TestCase):
                 self.assertTrue(smarts.any())
 
     def test_get_features(self):
-        from data_utils import get_features
+        from utils.data import get_features
 
         for mols in self.complexes:
             for mol in mols:
@@ -59,7 +59,7 @@ class DataUtilsTests(unittest.TestCase):
                 self.assertTrue((features != 0).any(axis=0).all())
 
     def test_rotate(self):
-        from data_utils import rotate
+        from utils.data import rotate
 
         coords = np.random.rand(1, 3)
         length = np.linalg.norm(coords)
@@ -69,7 +69,7 @@ class DataUtilsTests(unittest.TestCase):
             self.assertAlmostEqual(np.linalg.norm(coords_rot), length)
 
     def test_make_grid(self):
-        from data_utils import get_features, make_grid
+        from utils.data import get_features, make_grid
 
         for mols in self.complexes:
             for mol in mols:
@@ -106,7 +106,7 @@ class NetUtilsTests(unittest.TestCase):
         tf.reset_default_graph()
 
     def test_hidden_conv(self):
-        from net_utils import hidden_conv
+        from utils.net import hidden_conv
 
         for out_chnls in [8, 16]:
             for pool_patch in [2, 3]:
@@ -126,7 +126,7 @@ class NetUtilsTests(unittest.TestCase):
                     self.assertListEqual(shape, [None, s, s, s, out_chnls])
 
     def test_hidden_fcl(self):
-        from net_utils import hidden_fcl
+        from utils.net import hidden_fcl
 
         keep_prob = tf.placeholder(tf.float32)
 
@@ -144,7 +144,7 @@ class NetUtilsTests(unittest.TestCase):
             self.assertListEqual(shape, [None, out_size])
 
     def test_convolve(self):
-        from net_utils import hidden_conv, convolve
+        from utils.net import hidden_conv, convolve
         from tensorflow.python import pywrap_tensorflow
 
         for pool_patch in [2, 3]:
@@ -170,7 +170,7 @@ class NetUtilsTests(unittest.TestCase):
                 self.assertFalse(pywrap_tensorflow.EqualGraphDefWrapper(def1, def2))
 
     def test_feedforward(self):
-        from net_utils import hidden_fcl, feedforward
+        from utils.net import hidden_fcl, feedforward
         from tensorflow.python import pywrap_tensorflow
 
         out_sizes = [8, 16]
