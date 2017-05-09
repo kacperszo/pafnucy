@@ -5,8 +5,7 @@ unit:
   - conda install -yq python=3.5 numpy matplotlib seaborn pytest-cov
   - conda install -yq -c marta-sd openbabel
   - conda install -yq -c conda-forge tensorflow=1.0
-  - python tests/utils_test.py
-  - py.test --cov=utils
+  - py.test -v --cov=utils
 
 training:
   script:

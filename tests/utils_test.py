@@ -58,6 +58,18 @@ class DataUtilsTests(unittest.TestCase):
                 self.assertTrue((features != 0).any(axis=1).all())
                 self.assertTrue((features != 0).any(axis=0).all())
 
+    def test_rotation_matrix(self):
+        from utils.data import rotation_matrix
+        import math
+
+        for axis in [[0, 0, 1], [1, 2, 3], [1, 1, 1]]:
+            for theta1 in np.arange(0, 2*math.pi, 0.1):
+                for theta2 in np.arange(0.5, 2*math.pi, 0.1):
+                    rot11 = rotation_matrix(axis, theta1)
+                    rot12 = rotation_matrix(axis, theta2)
+                    rot2 = rotation_matrix(axis, theta1+theta2)
+                    self.assertTrue(np.allclose(np.dot(rot11, rot12), rot2))
+
     def test_rotate(self):
         from utils.data import rotate
 
