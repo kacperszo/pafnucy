@@ -97,8 +97,7 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
         with tf.name_scope('convolution'):
             h_convs, w_sum_conv = convolve(x, conv_channels,
                                            conv_patch=conv_patch,
-                                           pool_patch=conv_patch)
-
+                                           pool_patch=pool_patch)
         hfsize = isize
         for _ in range(len(conv_channels)):
             hfsize = ceil(hfsize / pool_patch)
