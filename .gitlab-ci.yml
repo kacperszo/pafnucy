@@ -2,10 +2,11 @@ image: continuumio/miniconda3
 
 unit:
   script:
-  - conda install -yq python=3.5 numpy scipy matplotlib seaborn h5py pandas scikit-learn
+  - conda install -yq python=3.5 numpy scipy matplotlib seaborn h5py pandas scikit-learn pytest-cov
   - conda install -yq -c marta-sd openbabel
   - conda install -yq -c conda-forge tensorflow=1.0
-  - python -m unittest tests/utils_test.py
+  - python tests/utils_test.py
+  - py.test --cov=utils
 
 training:
   script:
