@@ -10,6 +10,7 @@ unit:
 training:
   script:
   - conda install -yq python=3.5 numpy matplotlib seaborn h5py pandas scikit-learn
+  - conda install -yq -c marta-sd openbabel
   - conda install -yq -c conda-forge tensorflow=1.0
   - python training.py -i tests/data/dataset/ -o "test" --conv_channels 2 2 --dense_sizes 2 2 --num_epochs 2 --rotations 0 1
   when: manual
