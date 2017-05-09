@@ -55,12 +55,13 @@ def hidden_fcl(inp, out_size, keep_prob, name='hidden'):
     return h_drop, tf.reduce_sum(tf.pow(w, 2))
 
 
-def convolve(inp, channels):
+def convolve(inp, channels, conv_patch=5, pool_patch=2):
     prev = inp
     weights = []
     i = 0
     for num_channels in channels:
-        output, w_sum = hidden_conv(prev, num_channels, name='conv%s' % i)
+        output, w_sum = hidden_conv(prev, num_channels, conv_patch, pool_patch,
+                                    name='conv%s' % i)
         i += 1
         weights.append(w_sum)
         prev = output
