@@ -192,5 +192,48 @@ class NetUtilsTests(unittest.TestCase):
 
         self.assertFalse(pywrap_tensorflow.EqualGraphDefWrapper(def1, def2))
 
+    def test_make_network(self):
+        from utils.net import make_network
+
+        isize = 10
+        in_chnls = 8
+        osize = 1
+        conv_patch = 3
+        pool_patch = 2
+        conv_channels = [4, 8, 56]
+        dense_sizes = [10, 50, 20]
+
+        graph = make_network(isize=isize, in_chnls=in_chnls, osize=osize,
+                             conv_patch=conv_patch, pool_patch=pool_patch,
+                             conv_channels=conv_channels,
+                             dense_sizes=dense_sizes)
+
+        x = graph.get_tensor_by_name('input/structure:0')
+        self.assertEqual(x.get_shape().as_list(),
+                         [None, isize, isize, isize, in_chnls])
+        t = graph.get_tensor_by_name('input/affinity:0')
+        self.assertEqual(t.get_shape().as_list(), [None, osize])
+
+        prev_size = in_chnls
+        for i, curr_size in enumerate(conv_channels):
+            w = graph.get_tensor_by_name('convolution/conv%s/w:0' % i)
+            b = graph.get_tensor_by_name('convolution/conv%s/b:0' % i)
+            self.assertEqual(
+                w.get_shape().as_list(),
+                [conv_patch, conv_patch, conv_patch, prev_size, curr_size]
+            )
+            self.assertEqual(b.get_shape().as_list(), [curr_size])
+            prev_size = curr_size
+
+        flat = graph.get_tensor_by_name('fully_connected/h_flat:0')
+        prev_size = flat.get_shape().as_list()[1]
+
+        for i, curr_size in enumerate(dense_sizes):
+            w = graph.get_tensor_by_name('fully_connected/fc%s/w:0' % i)
+            b = graph.get_tensor_by_name('fully_connected/fc%s/b:0' % i)
+            self.assertEqual(w.get_shape().as_list(), [prev_size, curr_size])
+            self.assertEqual(b.get_shape().as_list(), [curr_size])
+            prev_size = curr_size
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
