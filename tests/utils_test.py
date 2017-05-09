@@ -113,6 +113,14 @@ class NetUtilsTests(unittest.TestCase):
                 for conv_patch in [2, 5, 10]:
                     h, _ = hidden_conv(self.x, out_chnls, conv_patch=conv_patch,
                                        pool_patch=pool_patch)
+
+                    input_tensor = h
+                    # there are 4 operations between x and h so we need 4 steps
+                    # to get back to x:
+                    # MaxPooling -> Conv -> Add -> x
+                    for _ in range(4):
+                        input_tensor = input_tensor.op.inputs[0]
+                    self.assertEqual(input_tensor, self.x)
                     shape = h.get_shape().as_list()
                     s = math.ceil(21 / pool_patch)
                     self.assertListEqual(shape, [None, s, s, s, out_chnls])
@@ -122,11 +130,67 @@ class NetUtilsTests(unittest.TestCase):
 
         keep_prob = tf.placeholder(tf.float32)
 
-        for out_chnls in [8, 16]:
-            h, _ = hidden_fcl(self.flat, out_chnls, keep_prob)
-            shape = h.get_shape().as_list()
-            self.assertListEqual(shape, [None, out_chnls])
+        for out_size in [8, 16]:
+            h, _ = hidden_fcl(self.flat, out_size, keep_prob)
+            input_tensor = h
+            # there are 5 operations between x and h so we need 5 steps
+            # to get back to x:
+            # Dropout -> ReLU -> Add -> MatMul -> x
+            for _ in range(5):
+                input_tensor = input_tensor.op.inputs[0]
+            self.assertEqual(input_tensor, self.flat)
 
+            shape = h.get_shape().as_list()
+            self.assertListEqual(shape, [None, out_size])
+
+    def test_convolve(self):
+        from net_utils import hidden_conv, convolve
+        from tensorflow.python import pywrap_tensorflow
+
+        for pool_patch in [2, 3]:
+            for conv_patch in [2, 5, 10]:
+                out_chnls = [8, 16]
+                g1 = tf.Graph()
+                with g1.as_default():
+                    x = tf.placeholder(tf.float32, shape=(None, 21, 21, 21, 19))
+                    h11, w1 = hidden_conv(x, out_chnls[0], conv_patch=conv_patch,
+                                          pool_patch=pool_patch, name='conv0')
+                    h12, w2 = hidden_conv(h11, out_chnls[1], conv_patch=conv_patch,
+                                          pool_patch=pool_patch, name='conv1')
+                    tf.reduce_sum([w1, w2])
+                def1 = g1.as_graph_def().SerializeToString()
+
+                g2 = tf.Graph()
+                with g2.as_default():
+                    x = tf.placeholder(tf.float32, shape=(None, 21, 21, 21, 19))
+                    h2, _ = convolve(x, out_chnls, conv_patch=conv_patch,
+                                     pool_patch=pool_patch)
+                def2 = g2.as_graph_def().SerializeToString()
+
+                self.assertFalse(pywrap_tensorflow.EqualGraphDefWrapper(def1, def2))
+
+    def test_feedforward(self):
+        from net_utils import hidden_fcl, feedforward
+        from tensorflow.python import pywrap_tensorflow
+
+        out_sizes = [8, 16]
+        g1 = tf.Graph()
+        with g1.as_default():
+            x = tf.placeholder(tf.float32, shape=(None, 100))
+            kp = tf.constant(1.0)
+            h11, w1 = hidden_fcl(x, out_sizes[0], keep_prob=kp, name='fc0')
+            h12, w2 = hidden_fcl(h11, out_sizes[1], keep_prob=kp, name='fc1')
+            tf.reduce_sum([w1, w2])
+        def1 = g1.as_graph_def().SerializeToString()
+
+        g2 = tf.Graph()
+        with g2.as_default():
+            x = tf.placeholder(tf.float32, shape=(None, 100))
+            kp = tf.constant(1.0)
+            h2, _ = feedforward(x, out_sizes, keep_prob=kp)
+        def2 = g2.as_graph_def().SerializeToString()
+
+        self.assertFalse(pywrap_tensorflow.EqualGraphDefWrapper(def1, def2))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
