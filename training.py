@@ -74,7 +74,7 @@ tr_group.add_argument('--num_checkpoints', dest='to_keep', default=10, type=int,
 args = parser.parse_args()
 
 logdir = args.log_dir + '/' + timestamp
-fname = args.output_prefix + '_kp%s_lmb%s_f%s_c%s_lr%s_' + timestamp
+prefix = args.output_prefix + '-' + timestamp
 
 print('\n---- FEATURES ----\n')
 print('atomic properties:', data_utils.FEATURE_NAMES)
@@ -220,7 +220,7 @@ fcs = '_'.join((str(i) for i in args.dense_sizes))
 
 with graph.as_default():
     saver = tf.train.Saver(max_to_keep=args.to_keep)
-prefix = fname % (args.kp, args.lmbda, fcs, convs, args.learning_rate)
+
 
 err = float('inf')
 
@@ -398,7 +398,7 @@ for set_name, tab in predictions.groupby('set'):
                                              % (set_name, rmse[dataset])})
 
     image = net_utils.custom_summary_image(grid.fig)
-    grid.fig.savefig('%s_%s.pdf' % (set_name, timestamp))
+    grid.fig.savefig('%s-%s.pdf' % (prefix, set_name))
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
                            image=image)
