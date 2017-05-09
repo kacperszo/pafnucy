@@ -9,7 +9,8 @@ import h5py
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-import utils
+import utils.data
+import utils.net
 
 import matplotlib as mpl
 mpl.use('agg')
