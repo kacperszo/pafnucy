@@ -192,11 +192,12 @@ print('')
 print(args.num_epochs, 'epochs, best', args.to_keep, 'saved')
 
 graph = utils.net.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
-                       conv_patch=args.conv_patch, pool_patch=args.pool_patch,
-                       conv_channels=args.conv_channels,
-                       dense_sizes=args.dense_sizes,
-                       kp=args.kp, lmbda=args.lmbda,
-                       learning_rate=args.learning_rate)
+                               conv_patch=args.conv_patch,
+                               pool_patch=args.pool_patch,
+                               conv_channels=args.conv_channels,
+                               dense_sizes=args.dense_sizes,
+                               kp=args.kp, lmbda=args.lmbda,
+                               learning_rate=args.learning_rate)
 
 
 train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph,
