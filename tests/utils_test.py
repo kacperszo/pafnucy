@@ -60,7 +60,6 @@ class DataUtilsTests(unittest.TestCase):
 
     def test_rotation_matrix(self):
         from utils.data import rotation_matrix
-        import math
 
         for axis in [[0, 0, 1], [1, 2, 3], [1, 1, 1]]:
             for theta1 in np.arange(0, 2*math.pi, 0.1):
