@@ -1,5 +1,5 @@
 import numpy as np
-np.random.seed = 123
+np.random.seed(123)
 
 from math import ceil
 import io
