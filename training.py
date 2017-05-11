@@ -73,8 +73,8 @@ tr_group.add_argument('--num_checkpoints', dest='to_keep', default=10, type=int,
 
 args = parser.parse_args()
 
-logdir = args.log_dir + '/' + timestamp
 prefix = args.output_prefix + '-' + timestamp
+logdir = args.log_dir + '/' + prefix.split('/')[-1]
 
 print('\n---- FEATURES ----\n')
 print('atomic properties:', utils.data.FEATURE_NAMES)
