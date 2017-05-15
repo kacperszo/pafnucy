@@ -227,7 +227,6 @@ err = float('inf')
 
 print('\n---- TRAINING ----\n')
 with tf.Session(graph=graph) as session:
-    tf.set_random_seed(123)
     session.run(tf.global_variables_initializer())
 
     summary_imp = tf.Summary()

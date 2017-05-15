@@ -88,6 +88,8 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
     graph = tf.Graph()
 
     with graph.as_default():
+        np.random.seed(123)
+        tf.set_random_seed(123)
         with tf.name_scope('input'):
             x = tf.placeholder(tf.float32,
                                shape=(None, isize, isize, isize, in_chnls),

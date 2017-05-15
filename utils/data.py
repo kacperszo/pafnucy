@@ -1,4 +1,6 @@
 import numpy as np
+np.random.seed(123)
+
 import pybel
 from math import ceil, sin, cos, sqrt, pi
 from itertools import combinations
