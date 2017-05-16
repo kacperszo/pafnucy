@@ -171,7 +171,6 @@ def custom_summary_image(mpl_figure):
 def feature_importance_plot(values):
     fig, ax = plt.subplots(figsize=(3, 3))
     sns.barplot(y=FEATURE_NAMES, x=values, ax=ax)
-    ax.set_xlim(0, 120)
     fig.tight_layout()
 
     image = custom_summary_image(fig)
