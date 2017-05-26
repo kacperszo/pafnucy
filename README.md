@@ -1,3 +1,6 @@
+[![build status](https://gitlab.com/marta-sd/affinity-net/badges/master/build.svg)](https://gitlab.com/marta-sd/affinity-net/commits/master)
+
+
 # Hyperparameters
 
 ## Default:
@@ -26,5 +29,5 @@
     * 20 epochs
     * 20 samples per batch
     * Adam optimizer with 1e-5 learning rate
-    * data augmantation (24 different orientations for each training case)
+    * data augmentation (24 different orientations for each training case)
     * model evaluated after each epoch, saved only if validation error improved
