@@ -243,6 +243,16 @@ with graph.as_default():
     saver = tf.train.Saver(max_to_keep=args.to_keep)
 
 
+def batches(set_name):
+    """Batch generator, yields slice indices"""
+    global num_batches, args, ds_sizes
+    for b in range(num_batches[set_name]):
+        bi = b * args.batch_size
+        bj = (b + 1) * args.batch_size
+        if b == num_batches[set_name] - 1:
+            bj = ds_sizes[set_name]
+        yield bi, bj
+
 err = float('inf')
 
 print('\n---- TRAINING ----\n')
@@ -270,12 +280,7 @@ with tf.Session(graph=graph) as session:
             # TRAIN #
             x_t, y_t = shuffle(range(ds_sizes['training']), affinity['training'])
 
-            for b in range(num_batches['training']):
-                bi = b * args.batch_size
-                bj = (b + 1) * args.batch_size
-                if b == num_batches['training'] - 1:
-                    bj = ds_sizes['training']
-
+            for bi, bj in batches('training'):
                 session.run(train, feed_dict={x: get_batch('training',
                                                            x_t[bi:bj],
                                                            rotation),
@@ -306,12 +311,8 @@ with tf.Session(graph=graph) as session:
         pred_t = np.zeros((ds_sizes['training'], 1))
         mse_t = np.zeros(num_batches['training'])
 
-        for b in range(num_batches['training']):
-            bi = b * args.batch_size
-            bj = (b + 1) * args.batch_size
-            if b == num_batches['training'] - 1:
-                bj = ds_sizes['training']
-            weight = (bj-bi) / ds_sizes['training']
+        for b, (bi, bj) in enumerate(batches('training')):
+            weight = (bj - bi) / ds_sizes['training']
 
             pred_t[bi:bj], mse_t[b] = session.run(
                 [y, mse],
@@ -336,12 +337,7 @@ with tf.Session(graph=graph) as session:
 
         # validation set error
         mse_v = 0
-        for b in range(num_batches['validation']):
-            bi = b * args.batch_size
-            bj = (b + 1) * args.batch_size
-            if b == num_batches['validation'] - 1:
-                bj = ds_sizes['validation']
-
+        for bi, bj in batches('validation'):
             weight = (bj - bi) / ds_sizes['validation']
             mse_v += weight * session.run(
                 mse,
@@ -386,12 +382,7 @@ with tf.Session(graph=graph) as session:
         pred = np.zeros((ds_sizes[dataset], 1))
         mse_dataset = 0.0
 
-        for b in range(num_batches[dataset]):
-            bi = b * args.batch_size
-            bj = (b + 1) * args.batch_size
-            if b == num_batches[dataset] - 1:
-                bj = ds_sizes[dataset]
-
+        for bi, bj in batches(dataset):
             weight = (bj - bi) / ds_sizes[dataset]
             pred[bi:bj], mse_batch = session.run(
                 [y, mse],
