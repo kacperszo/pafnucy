@@ -12,6 +12,8 @@ import tensorflow as tf
 import utils.data
 import utils.net
 
+from os.path import exists
+
 import matplotlib as mpl
 mpl.use('agg')
 
@@ -24,6 +26,23 @@ color = {'training': 'b', 'validation': 'g', 'test': 'r'}
 import time
 timestamp = time.strftime('%Y-%m-%dT%H:%M:%S')
 
+
+datasets = ['training', 'validation', 'test']
+
+
+def input_dir(path):
+    """Check if input directory exists and contains all needed files"""
+    global datasets
+
+    if not exists(path):
+        raise IOError('Incorrect input_dir specified: no such directory')
+    for dataset_name in datasets:
+        dataset_path = '%s/%s_set.hdf' % (path, dataset_name)
+        if not exists(dataset_path):
+            raise IOError('Incorrect input_dir specified:'
+                          ' %s set file not found' % dataset_path)
+    return path
+
 import argparse
 parser = argparse.ArgumentParser(
     description='Train 3D colnvolutional neural network on affinity data',
@@ -31,7 +50,7 @@ parser = argparse.ArgumentParser(
 )
 
 io_group = parser.add_argument_group('I/O')
-io_group.add_argument('--input_dir', '-i', default='../pdbbind/v2016/',
+io_group.add_argument('--input_dir', '-i', required=True, type=input_dir,
                       help='directory with training, validation and test sets')
 io_group.add_argument('--log_dir', '-l', default='./logdir/',
                       help='directory to store tensorboard summaries')
@@ -80,8 +99,6 @@ print('\n---- FEATURES ----\n')
 print('atomic properties:', utils.data.FEATURE_NAMES)
 
 columns = {name: i for i, name in enumerate(utils.data.FEATURE_NAMES)}
-
-datasets = ['training', 'validation', 'test']
 
 ids = {}
 affinity = {}
