@@ -155,13 +155,13 @@ print('\n---- DATA ----\n')
 
 tmp = get_batch('training', range(50))
 
-assert ((tmp[:, :, :, :, columns['moltype']] == 0)
-        | (tmp[:, :, :, :, columns['moltype']] == 1)
-        | (tmp[:, :, :, :, columns['moltype']] == -1)).all()
+assert ((tmp[:, :, :, :, columns['moltype']] == 0.0)
+        | (tmp[:, :, :, :, columns['moltype']] == 1.0)
+        | (tmp[:, :, :, :, columns['moltype']] == -1.0)).all()
 
-assert ((tmp[:, :, :, :, columns['moltype']] == 0).any()
-        and (tmp[:, :, :, :, columns['moltype']] == 1).any()
-        and (tmp[:, :, :, :, columns['moltype']] == -1).any()).all()
+assert ((tmp[:, :, :, :, columns['moltype']] == 0.0).any()
+        and (tmp[:, :, :, :, columns['moltype']] == 1.0).any()
+        and (tmp[:, :, :, :, columns['moltype']] == -1.0).any()).all()
 
 idx1 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['moltype']] == 1.0)]
 idx2 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['moltype']] == -1.0)]
@@ -175,8 +175,8 @@ for mtype, mol in [['ligand', tmp[idx1]], ['protein', tmp[idx2]]]:
 
 
 # Best error we can get without any training (MSE from training set mean):
-t_baseline = ((affinity['training'] - affinity['training'].mean())**2).mean()
-v_baseline = ((affinity['validation'] - affinity['training'].mean())**2).mean()
+t_baseline = ((affinity['training'] - affinity['training'].mean()) ** 2.0).mean()
+v_baseline = ((affinity['validation'] - affinity['training'].mean()) ** 2.0).mean()
 print('baseline mse: training=%s, validation=%s' % (t_baseline, v_baseline))
 
 
@@ -193,7 +193,7 @@ num_batches = {dataset: size // args.batch_size
                for dataset, size in ds_sizes.items()}
 
 print('\n---- MODEL ----\n')
-print((isize-1) * args.grid_spacing, 'A box')
+print((isize - 1) * args.grid_spacing, 'A box')
 print(in_chnls, 'features')
 print('')
 print('convolutional layers: %s channels, %sA patch + max pooling with %sA patch'
@@ -271,8 +271,8 @@ with tf.Session(graph=graph) as session:
             x_t, y_t = shuffle(range(ds_sizes['training']), affinity['training'])
 
             for b in range(num_batches['training']):
-                bi = b*args.batch_size
-                bj = (b+1)*args.batch_size
+                bi = b * args.batch_size
+                bj = (b + 1) * args.batch_size
                 if b == num_batches['training'] - 1:
                     bj = ds_sizes['training']
 
@@ -307,8 +307,8 @@ with tf.Session(graph=graph) as session:
         mse_t = np.zeros(num_batches['training'])
 
         for b in range(num_batches['training']):
-            bi = b*args.batch_size
-            bj = (b+1)*args.batch_size
+            bi = b * args.batch_size
+            bj = (b + 1) * args.batch_size
             if b == num_batches['training'] - 1:
                 bj = ds_sizes['training']
             weight = (bj-bi) / ds_sizes['training']
@@ -337,13 +337,13 @@ with tf.Session(graph=graph) as session:
         # validation set error
         mse_v = 0
         for b in range(num_batches['validation']):
-            bi = b*args.batch_size
-            bj = (b+1)*args.batch_size
+            bi = b * args.batch_size
+            bj = (b + 1) * args.batch_size
             if b == num_batches['validation'] - 1:
                 bj = ds_sizes['validation']
 
-            weight = (bj-bi) / ds_sizes['validation']
-            mse_v += weight*session.run(
+            weight = (bj - bi) / ds_sizes['validation']
+            mse_v += weight * session.run(
                 mse,
                 feed_dict={x: get_batch('validation', range(bi, bj)),
                            t: affinity['validation'][bi:bj],
@@ -387,12 +387,12 @@ with tf.Session(graph=graph) as session:
         mse_dataset = 0.0
 
         for b in range(num_batches[dataset]):
-            bi = b*args.batch_size
-            bj = (b+1)*args.batch_size
+            bi = b * args.batch_size
+            bj = (b + 1) * args.batch_size
             if b == num_batches[dataset] - 1:
                 bj = ds_sizes[dataset]
 
-            weight = (bj-bi) / ds_sizes[dataset]
+            weight = (bj - bi) / ds_sizes[dataset]
             pred[bi:bj], mse_batch = session.run(
                 [y, mse],
                 feed_dict={x: get_batch(dataset, range(bi, bj)),
@@ -409,7 +409,7 @@ with tf.Session(graph=graph) as session:
 
 
 predictions = pd.concat(predictions, ignore_index=True)
-predictions.to_csv(prefix+'-predictions.csv', index=False)
+predictions.to_csv(prefix + '-predictions.csv', index=False)
 
 for set_name, tab in predictions.groupby('set'):
     grid = sns.jointplot('real', 'predicted', data=tab, color=color[set_name],
@@ -418,7 +418,7 @@ for set_name, tab in predictions.groupby('set'):
                                              % (set_name, rmse[set_name])})
 
     image = utils.net.custom_summary_image(grid.fig)
-    grid.fig.savefig(prefix+'-%s.pdf' % set_name)
+    grid.fig.savefig(prefix + '-%s.pdf' % set_name)
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
                            image=image)
