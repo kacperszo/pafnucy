@@ -12,7 +12,7 @@ import tensorflow as tf
 import utils.data
 import utils.net
 
-from os.path import exists
+import os.path
 
 import matplotlib as mpl
 mpl.use('agg')
@@ -34,11 +34,12 @@ def input_dir(path):
     """Check if input directory exists and contains all needed files"""
     global datasets
 
-    if not exists(path):
+    path = os.path.abspath(path)
+    if not os.path.isdir(path):
         raise IOError('Incorrect input_dir specified: no such directory')
     for dataset_name in datasets:
-        dataset_path = '%s/%s_set.hdf' % (path, dataset_name)
-        if not exists(dataset_path):
+        dataset_path = os.path.join(path, '%s_set.hdf' % dataset_name)
+        if not os.path.exists(dataset_path):
             raise IOError('Incorrect input_dir specified:'
                           ' %s set file not found' % dataset_path)
     return path
@@ -92,8 +93,8 @@ tr_group.add_argument('--num_checkpoints', dest='to_keep', default=10, type=int,
 
 args = parser.parse_args()
 
-prefix = args.output_prefix + '-' + timestamp
-logdir = args.log_dir + '/' + prefix.split('/')[-1]
+prefix = os.path.abspath(args.output_prefix) + '-' + timestamp
+logdir = os.path.join(os.path.abspath(args.log_dir), os.path.split(prefix)[1])
 
 print('\n---- FEATURES ----\n')
 print('atomic properties:', utils.data.FEATURE_NAMES)
@@ -110,7 +111,8 @@ for dictionary in [ids, affinity, coords, features]:
         dictionary[dataset_name] = []
 
 for dataset_name in datasets:
-    with h5py.File('%s/%s_set.hdf' % (args.input_dir, dataset_name), 'r') as f:
+    dataset_path = os.path.join(args.input_dir, '%s_set.hdf' % dataset_name)
+    with h5py.File(dataset_path, 'r') as f:
         for pdb_id in f:
             dataset = f[pdb_id]
 
@@ -218,9 +220,10 @@ graph = utils.net.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
                                learning_rate=args.learning_rate)
 
 
-train_writer = tf.summary.FileWriter('%s/training_set' % logdir, graph,
-                                     flush_secs=1)
-val_writer = tf.summary.FileWriter('%s/validation_set' % logdir, flush_secs=1)
+train_writer = tf.summary.FileWriter(os.path.join(logdir, 'training_set'),
+                                     graph, flush_secs=1)
+val_writer = tf.summary.FileWriter(os.path.join(logdir, 'validation_set'),
+                                   flush_secs=1)
 
 net_summaries, training_summaries = utils.net.make_summaries(graph)
 
@@ -376,8 +379,8 @@ rmse = {}
 with tf.Session(graph=graph) as session:
     tf.set_random_seed(123)
 
-    saver.restore(session, './'+checkpoint)
-    saver.save(session, './%s-best' % prefix)
+    saver.restore(session, os.path.abspath(checkpoint))
+    saver.save(session, prefix + '-best')
 
     for dataset in datasets:
         pred = np.zeros((ds_sizes[dataset], 1))
@@ -415,7 +418,7 @@ for set_name, tab in predictions.groupby('set'):
                                              % (set_name, rmse[set_name])})
 
     image = utils.net.custom_summary_image(grid.fig)
-    grid.fig.savefig('%s-%s.pdf' % (prefix, set_name))
+    grid.fig.savefig(prefix+'-%s.pdf' % set_name)
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
                            image=image)
