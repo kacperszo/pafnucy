@@ -38,7 +38,7 @@ def hidden_conv(inp, out_chnls, conv_patch=5, pool_patch=2, name='conv'):
     return h_pool, tf.reduce_sum(tf.pow(w, 2))
 
 
-def hidden_fcl(inp, out_size, keep_prob, name='hidden'):
+def hidden_fcl(inp, out_size, keep_prob, name='fc'):
     assert len(inp.get_shape()) == 2
 
     in_size = inp.get_shape()[1].value
@@ -108,7 +108,8 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
         with tf.name_scope('fully_connected'):
             h_flat = tf.reshape(h_convs, shape=(-1, hfsize), name='h_flat')
 
-            keep_prob = tf.placeholder(tf.float32, name='keep_prob')
+            prob1 = tf.constant(1.0, name='kepp_prob_default')
+            keep_prob = tf.placeholder_with_default(prob1, shape=(), name='keep_prob')
 
             h_fcl, w_sum_fcl = feedforward(h_flat, dense_sizes, keep_prob=keep_prob)
 
@@ -134,7 +135,6 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
     graph.add_to_collection('output', y)
     graph.add_to_collection('input', x)
     graph.add_to_collection('target', t)
-    graph.add_to_collection('kp', keep_prob)
 
     return graph
 
