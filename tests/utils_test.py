@@ -42,18 +42,21 @@ class DataUtilsTests(unittest.TestCase):
 
     def test_find_smarts(self):
         from utils.data import find_smarts
+        any_atom = pybel.Smarts('*')
 
         for mols in self.complexes:
             for mol in mols:
                 smarts = find_smarts(mol)
                 self.assertTrue(smarts.any())
+                all_atoms = find_smarts(mol, [any_atom])
+                self.assertTrue(all_atoms.all())
 
     def test_get_features(self):
         from utils.data import get_features
 
         for mols in self.complexes:
             for mol in mols:
-                coords, features = get_features(mol)
+                coords, features = get_features(mol, moltype=1.0)
                 self.assertEqual(len(coords), len(features))
                 self.assertTrue((features != 0).any(axis=1).all())
                 self.assertTrue((features != 0).any(axis=0).all())
@@ -70,7 +73,7 @@ class DataUtilsTests(unittest.TestCase):
                     self.assertTrue(np.allclose(np.dot(rot11, rot12), rot2))
 
     def test_rotate(self):
-        from utils.data import rotate
+        from utils.data import rotate, rotation_matrix
 
         coords = np.random.rand(1, 3)
         length = np.linalg.norm(coords)
@@ -78,6 +81,16 @@ class DataUtilsTests(unittest.TestCase):
         for rotation in range(24):
             coords_rot = rotate(coords, rotation)
             self.assertAlmostEqual(np.linalg.norm(coords_rot), length)
+
+        self.assertRaises(ValueError, rotate, coords, -1)
+
+        for axis in [[0, 0, 1], [1, 2, 3], [1, 1, 1]]:
+            for theta in np.arange(0, 2*math.pi, 0.1):
+                rotation = rotation_matrix(axis, theta)
+                coords_rot = rotate(coords, rotation)
+                self.assertAlmostEqual(np.linalg.norm(coords_rot), length)
+
+        self.assertRaises(ValueError, rotate, coords, np.random.rand(4, 3))
 
     def test_make_grid(self):
         from utils.data import get_features, make_grid
@@ -123,7 +136,7 @@ class NetUtilsTests(unittest.TestCase):
             for pool_patch in [2, 3]:
                 for conv_patch in [2, 5, 10]:
                     h, _ = hidden_conv(self.x, out_chnls, conv_patch=conv_patch,
-                                       pool_patch=pool_patch)
+                                       pool_patch=pool_patch, name='conv')
 
                     input_tensor = h
                     # there are 4 operations between x and h so we need 4 steps
@@ -142,7 +155,7 @@ class NetUtilsTests(unittest.TestCase):
         keep_prob = tf.placeholder(tf.float32)
 
         for out_size in [8, 16]:
-            h, _ = hidden_fcl(self.flat, out_size, keep_prob)
+            h, _ = hidden_fcl(self.flat, out_size, keep_prob, name='fc')
             input_tensor = h
             # there are 5 operations between x and h so we need 5 steps
             # to get back to x:
