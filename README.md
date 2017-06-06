@@ -1,6 +1,9 @@
 [![build status](https://gitlab.com/marta-sd/affinity-net/badges/master/build.svg)](https://gitlab.com/marta-sd/affinity-net/commits/master)
 
 
+[CASF benchmark](http://pubs.acs.org/doi/pdf/10.1021/ci500081m)
+
+
 # Hyperparameters
 
 ## Default:
@@ -31,3 +34,10 @@
     * Adam optimizer with 1e-5 learning rate
     * data augmentation (24 different orientations for each training case)
     * model evaluated after each epoch, saved only if validation error improved
+
+## Other tested setups:
+* 10 samples per batch - same error, slightly better correlation
+* **5 samples per batch** - best performing model
+* 0.2 dropout (keep_prob=0.8) / no dropout (keep_prob=1.0) - results for all sets are worse
+* no weight decay - results are almost the same, but weights are much higher, especially for boron (B), which is present in only 166 compounds in the training set
+* 0.01 weight decay - weights look much better, but results are worse (also for training set)
