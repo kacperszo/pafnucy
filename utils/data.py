@@ -205,12 +205,12 @@ def rotate(coords, rotation):
         if rotation >= 0 and rotation < len(ROTATIONS):
             return np.dot(coords, ROTATIONS[rotation])
         else:
-            raise ValueError("Invalid rotation number %s!" % rotation)
+            raise ValueError('Invalid rotation number %s!' % rotation)
     elif isinstance(rotation, np.ndarray) and rotation.shape == (3, 3):
         return np.dot(coords, rotation)
 
     else:
-        raise ValueError("Invalid rotation %s!" % rotation)
+        raise ValueError('Invalid rotation %s!' % rotation)
 
 
 def make_grid(coords, features, grid_resolution=1.0, max_dist=10.0):
