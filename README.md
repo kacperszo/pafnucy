@@ -1,7 +1,35 @@
 [![build status](https://gitlab.com/marta-sd/affinity-net/badges/master/build.svg)](https://gitlab.com/marta-sd/affinity-net/commits/master)
 
 
-[CASF benchmark](http://pubs.acs.org/doi/pdf/10.1021/ci500081m)
+# Requirements
+In order to use the provided model and run all scripts you need:
+* Python 3.5
+* tensorflow 1.0 (GPU-enabled version is **highly** recommended)
+* openbabel 2.4
+* numpy 1.12
+* h5py 2.7
+* matplotlib 2.0
+* pandas 0.20
+* scikit-learn 0.18.1
+* seaborn 0.7
+
+The easiest way to prepre the environment with all required packages is to use [conda](http://conda.io).
+You can create environment with GPU-enabled version of tensorflow with:
+
+```
+conda env create -f environment_gpu.yml
+```
+
+Note that you need to have [CUDA Toolkit](http://docs.nvidia.com/cuda) 8.0 and [cuDNN](https://developer.nvidia.com/cudnn) 5.1 installed on your system.
+
+To create environment for CPU support only use:
+```
+conda env create -f environment_cpu.yml
+```
+Remember to activate your environment before running the scripts:
+```
+source activate net_test
+```
 
 
 # Hyperparameters
@@ -41,3 +69,8 @@
 * 0.2 dropout (keep_prob=0.8) / no dropout (keep_prob=1.0) - results for all sets are worse
 * no weight decay - results are almost the same, but weights are much higher, especially for boron (B), which is present in only 166 compounds in the training set
 * 0.01 weight decay - weights look much better, but results are worse (also for training set)
+
+
+# References
+
+[CASF benchmark](http://pubs.acs.org/doi/pdf/10.1021/ci500081m)
