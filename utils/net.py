@@ -135,6 +135,7 @@ def make_network(isize=20, in_chnls=len(FEATURE_NAMES), osize=1,
     graph.add_to_collection('output', y)
     graph.add_to_collection('input', x)
     graph.add_to_collection('target', t)
+    graph.add_to_collection('kp', keep_prob)
 
     return graph
 
