@@ -130,8 +130,20 @@ If you want to use your own set of weights, use:
 python predict.py -i complexes.hdf -n some/path/my_net -o predictions.csv
 ```
 
-Note that network is defined with at least 3 files: `my_net.meta`, `my_net.index` and one or more `my_net.data-<number>-of-<number>` files, and all of them need to present be in `some/path` directory.
+Note that network is defined with at least 3 files: `my_net.meta`, `my_net.index` and one or more `my_net.data-<number>-of-<number>` files, and all of them need to be present in `some/path` directory.
 Also remember to specify `--grid_spacing` and `--max_dist`, if you used custom values of this parameters during training.
+Also if you used different dataset than PDBbind v. 2016 or trained the model without using `training.py`, you should specify `--charge_scaler`.
+If you did not scale the partial charges, use `--charge_scaler 1`.
+If you trained your model with `training.py`, the partial charges were scaled by the standard deviation and the value was printed out:
+
+```
+---- FEATURES ----
+
+atomic properties: ['B', 'C', 'N', 'O', 'P', 'S', 'Se', 'halogen', 'metal', 'hyb', 'heavyvalence', 'heterovalence', 'partialcharge', 'moltype', 'hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring']
+charges: mean=-0.105995, sd=0.430907
+use sd as scaling factor
+```
+
 
 ## Train
 
@@ -143,7 +155,7 @@ Save each subset as HDF file named `training_set.hdf` etc, with each complex as 
 
 If you use the PDBbind dataset, you can prepare it with `pdbbind_data.ipynb` notebook and then use `split_dataset.py` script to split it into the 3 subsets.
 The notebook assumes, that your files are organized as in PDBbind v. 2016, so if you use a different version you might need to change some paths.
-The script `split_dataset.py` will by default use core set as test set, 1000 molecules from refined set as validation set, and the rest of the data as training set.
+The script `split_dataset.py` will by default use core set as test set, 1000 randomly selected molecules from refined set as validation set, and the rest of the data as training set.
 You can control the size of validation set with `--size_val` attribute.
 
 After creating the dataset you can use it to train the new network:
