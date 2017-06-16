@@ -59,6 +59,8 @@ io_group.add_argument('--output_prefix', '-o', default='./output',
                       help='prefix for checkpoints, predictions and plots')
 io_group.add_argument('--grid_spacing', '-g', default=1.0, type=float,
                       help='distance between grid points')
+io_group.add_argument('--max_dist', '-d', default=10.0, type=float,
+                      help='max distance from complex center')
 
 arc_group = parser.add_argument_group('Netwrok architecture')
 arc_group.add_argument('--conv_patch', default=5, type=int,
@@ -145,7 +147,8 @@ def get_batch(dataset_name, indices, rotation=0):
         coords_idx = utils.data.rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
         x.append(utils.data.make_grid(coords_idx, features_idx,
-                 grid_resolution=args.grid_spacing))
+                 grid_resolution=args.grid_spacing,
+                 max_dist=args.max_dist))
     x = np.vstack(x)
     x[..., columns['partialcharge']] /= std
     return x

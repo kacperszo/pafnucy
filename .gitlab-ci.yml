@@ -11,7 +11,7 @@ training:
   script:
   - conda env create -q -f environment_cpu.yml
   - source activate net_test
-  - python training.py -i tests/data/dataset/ -o "test" --conv_channels 2 2 --dense_sizes 2 2 --num_epochs 2 --rotations 0 1
+  - python training.py -i tests/data/dataset/ -o "test" --grid_spacing 0.75 --max_dist 4 --conv_channels 2 2 --dense_sizes 2 2 --num_epochs 2 --rotations 0 1
   when: manual
 
 prediction:
