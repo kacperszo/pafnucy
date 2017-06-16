@@ -73,6 +73,10 @@ parser.add_argument('--network', '-n', type=network_prefix,
                     default='results/batch5-2017-06-05T07:58:47-best',
                     help='prefix for the files with the network'
                     'Be default we use network trained on PDBbind v. 2016')
+parser.add_argument('--grid_spacing', '-g', default=1.0, type=float,
+                    help='distance between grid points used during training')
+parser.add_argument('--max_dist', '-d', default=10.0, type=float,
+                    help='max distance from complex center used during training')
 parser.add_argument('--batch', '-b', type=batch_size,
                     default=0,
                     help='batch size. If set to 0, predict for all complexes at once.')
@@ -115,7 +119,8 @@ def __get_batch():
             print('%s samples per batch\n' % args.batch)
 
     for crd, f in zip(coords, features):
-        batch_grid.append(utils.data.make_grid(crd, f))
+        batch_grid.append(utils.data.make_grid(crd, f, max_dist=args.max_dist,
+                                               grid_resolution=args.grid_spacing))
         if len(batch_grid) == args.batch:
             # if batch is not specified it will never happen
             batch_grid = np.vstack(batch_grid)
