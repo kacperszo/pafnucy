@@ -148,6 +148,8 @@ with tf.Session() as session:
     predictions = []
     batch_generator = __get_batch()
     for grid in batch_generator:
+        # TODO: remove kp in next release
+        # it's here for backward compatibility
         predictions.append(session.run(predict, feed_dict={inp: grid, kp: 1.0}))
 
 results = pd.DataFrame({'name': names,
