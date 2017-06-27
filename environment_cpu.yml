@@ -9,3 +9,5 @@ dependencies:
 - conda-forge::pandas>=0.20.2
 - conda-forge::scikit-learn>=0.18.1
 - conda-forge::seaborn>=0.7
+- conda-forge::notebook>=5.0
+- anaconda::ipywidgets>=6.0.0
