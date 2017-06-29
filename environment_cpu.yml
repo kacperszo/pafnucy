@@ -1,7 +1,7 @@
 name: net_test
 dependencies:
 - conda-forge::python=3.6
-- conda-forge::tensorflow=1.2
+- marta-sd::tensorflow=1.2
 - openbabel::openbabel=2.4.1
 - conda-forge::numpy=1.12.1
 - conda-forge::h5py>=2.7.0
