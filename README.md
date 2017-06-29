@@ -59,7 +59,7 @@ You can create environment with GPU-enabled version of tensorflow with:
 conda env create -f environment_gpu.yml
 ```
 
-Note that you need to have [CUDA Toolkit](http://docs.nvidia.com/cuda) 8.0 and [cuDNN](https://developer.nvidia.com/cudnn) 5.1 installed on your system.
+Note that the environment contains [CUDA Toolkit](http://docs.nvidia.com/cuda) 8.0 and [cuDNN](https://developer.nvidia.com/cudnn) 5.1, so you do not need to install them on your system.
 
 To create environment for CPU support only use:
 ```
