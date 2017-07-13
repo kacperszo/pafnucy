@@ -56,6 +56,16 @@ def output_file(path):
     return path
 
 
+def string_bool(s):
+    s = s.lower()
+    if s in ['true', 't', '1', 'yes', 'y']:
+        return True
+    elif s in ['false', 'f', '0', 'no', 'n']:
+        return False
+    else:
+        raise IOError('%s cannot be interpreted as a boolean' % s)
+
+
 import argparse
 parser = argparse.ArgumentParser(
     description='Predict affinity with the network',
@@ -83,7 +93,7 @@ parser.add_argument('--batch', '-b', type=batch_size,
 parser.add_argument('--output', '-o', type=output_file,
                     default='./predictions.csv',
                     help='name for the CSV file with the predictions')
-parser.add_argument('--verbose', '-v', type=bool,
+parser.add_argument('--verbose', '-v', type=string_bool,
                     default=True,
                     help='whether to print messages')
 

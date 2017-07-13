@@ -28,6 +28,16 @@ def output_file(path):
     return path
 
 
+def string_bool(s):
+    s = s.lower()
+    if s in ['true', 't', '1', 'yes', 'y']:
+        return True
+    elif s in ['false', 'f', '0', 'no', 'n']:
+        return False
+    else:
+        raise IOError('%s cannot be interpreted as a boolean' % s)
+
+
 import argparse
 parser = argparse.ArgumentParser(
     description='Prepare molecular data for the network',
@@ -68,10 +78,11 @@ parser.add_argument('--output', '-o', default='./complexes.hdf',
 parser.add_argument('--mode', '-m', default='w',
                     type=str, choices=['r+', 'w', 'w-', 'x', 'a'],
                     help='mode for the output file (see h5py documentation)')
-parser.add_argument('--verbose', '-v', default=True, type=bool,
+parser.add_argument('--verbose', '-v', default=True, type=string_bool,
                     help='whether to print messages')
 
 args = parser.parse_args()
+
 
 # TODO: training set preparation (allow to read affinities)
 
