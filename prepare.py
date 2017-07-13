@@ -119,7 +119,7 @@ def __get_pocket():
             yield (pocket_coords, pocket_features)
 
 
-with h5py.File(args.output, 'w') as f:
+with h5py.File(args.output, args.mode) as f:
     pocket_generator = __get_pocket()
     for ligand_file in args.ligand:
         # use filename without extension as dataset name
