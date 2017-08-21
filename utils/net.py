@@ -207,3 +207,18 @@ def make_summaries(graph):
         ))
 
     return net_summaries, training_summaries
+
+
+class SummaryWriter():
+
+    def __init__(self, *args, **kwargs):
+        """Context manager for tf.summary.FileWriter"""
+        self.args = args
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        self.writer = tf.summary.FileWriter(*self.args, **self.kwargs)
+        return self.writer
+
+    def __exit__(self, *args):
+        self.writer.close()
