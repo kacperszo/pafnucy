@@ -3,21 +3,21 @@ image: continuumio/miniconda3
 unit:
   script:
   - conda env create -q -f environment_cpu.yml
-  - source activate net_test
+  - source activate pafnucy_env
   - conda install -yq pytest-cov
   - py.test -v --cov=utils
 
 training:
   script:
   - conda env create -q -f environment_cpu.yml
-  - source activate net_test
+  - source activate pafnucy_env
   - python training.py -i tests/data/dataset/ -o "test" --grid_spacing 0.75 --max_dist 4 --conv_channels 2 2 --dense_sizes 2 2 --num_epochs 2 --rotations 0 1
   when: manual
 
 prediction:
   script:
   - conda env create -q -f environment_cpu.yml
-  - source activate net_test
+  - source activate pafnucy_env
   - python prepare.py -l tests/data/complexes/*/*_ligand.mol2 -p tests/data/complexes/*/*_pocket.mol2 -o test_input.hdf
   - python predict.py -i test_input.hdf -o test_predictions.csv
   - python predict.py -i test_input.hdf -g 0.75 -d 4.0 -n tests/data/network/net_g075_d4 -o test_predictions.csv
