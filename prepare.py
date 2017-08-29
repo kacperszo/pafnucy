@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 
 import pybel
-import utils.data
+import tfbio.data
 
 import os
 
@@ -53,7 +53,7 @@ parser = argparse.ArgumentParser(
     If some part of your data can be shared between multiple complexes
     (e.g. you use a single structure for the pocket), you can store the data
     more efficiently. To prepare the data manually use functions defined in
-    utils.data module.
+    tfbio.data module.
     '''
 )
 
@@ -86,7 +86,7 @@ args = parser.parse_args()
 
 # TODO: training set preparation (allow to read affinities)
 
-charge_column = utils.data.FEATURE_NAMES.index('partialcharge')
+charge_column = tfbio.data.FEATURE_NAMES.index('partialcharge')
 
 num_pockets = len(args.pocket)
 num_ligands = len(args.ligand)
@@ -116,7 +116,7 @@ def __get_pocket():
             except:
                 raise IOError('Cannot read %s file' % pocket_file)
 
-            pocket_coords, pocket_features = utils.data.get_features(pocket, moltype=-1)
+            pocket_coords, pocket_features = tfbio.data.get_features(pocket, moltype=-1)
             yield (pocket_coords, pocket_features)
 
     else:
@@ -125,7 +125,7 @@ def __get_pocket():
             pocket = next(pybel.readfile(args.pocket_format, pocket_file))
         except:
             raise IOError('Cannot read %s file' % pocket_file)
-        pocket_coords, pocket_features = utils.data.get_features(pocket, moltype=-1)
+        pocket_coords, pocket_features = tfbio.data.get_features(pocket, moltype=-1)
         for _ in range(num_ligands):
             yield (pocket_coords, pocket_features)
 
@@ -143,7 +143,7 @@ with h5py.File(args.output, args.mode) as f:
         except:
             raise IOError('Cannot read %s file' % ligand_file)
 
-        ligand_coords, ligand_features = utils.data.get_features(ligand, moltype=1)
+        ligand_coords, ligand_features = tfbio.data.get_features(ligand, moltype=1)
         pocket_coords, pocket_features = next(pocket_generator)
 
         for features in (ligand_features, pocket_features):

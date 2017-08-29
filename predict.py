@@ -3,8 +3,7 @@ import pandas as pd
 import h5py
 
 import tensorflow as tf
-import utils.data
-import utils.net
+import tfbio.data
 
 import os
 
@@ -129,7 +128,7 @@ def __get_batch():
             print('%s samples per batch\n' % args.batch)
 
     for crd, f in zip(coords, features):
-        batch_grid.append(utils.data.make_grid(crd, f, max_dist=args.max_dist,
+        batch_grid.append(tfbio.data.make_grid(crd, f, max_dist=args.max_dist,
                                                grid_resolution=args.grid_spacing))
         if len(batch_grid) == args.batch:
             # if batch is not specified it will never happen

@@ -9,8 +9,8 @@ import h5py
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-import utils.data
-import utils.net
+import tfbio.data
+import tfbio.net
 
 import os.path
 
@@ -99,9 +99,9 @@ prefix = os.path.abspath(args.output_prefix) + '-' + timestamp
 logdir = os.path.join(os.path.abspath(args.log_dir), os.path.split(prefix)[1])
 
 print('\n---- FEATURES ----\n')
-print('atomic properties:', utils.data.FEATURE_NAMES)
+print('atomic properties:', tfbio.data.FEATURE_NAMES)
 
-columns = {name: i for i, name in enumerate(utils.data.FEATURE_NAMES)}
+columns = {name: i for i, name in enumerate(tfbio.data.FEATURE_NAMES)}
 
 ids = {}
 affinity = {}
@@ -144,9 +144,9 @@ def get_batch(dataset_name, indices, rotation=0):
     global coords, features, std
     x = []
     for i, idx in enumerate(indices):
-        coords_idx = utils.data.rotate(coords[dataset_name][idx], rotation)
+        coords_idx = tfbio.data.rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
-        x.append(utils.data.make_grid(coords_idx, features_idx,
+        x.append(tfbio.data.make_grid(coords_idx, features_idx,
                  grid_resolution=args.grid_spacing,
                  max_dist=args.max_dist))
     x = np.vstack(x)
@@ -214,13 +214,13 @@ print(num_batches['test'], 'test batches')
 print('')
 print(args.num_epochs, 'epochs, best', args.to_keep, 'saved')
 
-graph = utils.net.make_network(isize=isize, in_chnls=in_chnls, osize=osize,
-                               conv_patch=args.conv_patch,
-                               pool_patch=args.pool_patch,
-                               conv_channels=args.conv_channels,
-                               dense_sizes=args.dense_sizes,
-                               kp=args.kp, lmbda=args.lmbda,
-                               learning_rate=args.learning_rate)
+graph = tfbio.net.make_SB_network(isize=isize, in_chnls=in_chnls, osize=osize,
+                                  conv_patch=args.conv_patch,
+                                  pool_patch=args.pool_patch,
+                                  conv_channels=args.conv_channels,
+                                  dense_sizes=args.dense_sizes,
+                                  kp=args.kp, lmbda=args.lmbda,
+                                  learning_rate=args.learning_rate)
 
 
 train_writer = tf.summary.FileWriter(os.path.join(logdir, 'training_set'),
@@ -228,7 +228,7 @@ train_writer = tf.summary.FileWriter(os.path.join(logdir, 'training_set'),
 val_writer = tf.summary.FileWriter(os.path.join(logdir, 'validation_set'),
                                    flush_secs=1)
 
-net_summaries, training_summaries = utils.net.make_summaries(graph)
+net_summaries, training_summaries = tfbio.net.make_summaries_SB(graph)
 
 x = graph.get_tensor_by_name('input/structure:0')
 y = graph.get_tensor_by_name('output/prediction:0')
@@ -264,7 +264,7 @@ with tf.Session(graph=graph) as session:
 
     summary_imp = tf.Summary()
     feature_imp = session.run(feature_importance)
-    image = utils.net.feature_importance_plot(feature_imp)
+    image = tfbio.net.feature_importance_plot(feature_imp)
     summary_imp.value.add(tag='feature_importance_%s' % 0, image=image)
     train_writer.add_summary(summary_imp, 0)
 
@@ -335,7 +335,7 @@ with tf.Session(graph=graph) as session:
         # predictions distribution
         summary_pred = tf.Summary()
         summary_pred.value.add(tag='predictions_all',
-                               histo=utils.net.custom_summary_histogram(pred_t))
+                               histo=tfbio.net.custom_summary_histogram(pred_t))
         train_writer.add_summary(summary_pred, global_step.eval())
 
         # validation set error
@@ -364,7 +364,7 @@ with tf.Session(graph=graph) as session:
             # feature importance
             summary_imp = tf.Summary()
             feature_imp = session.run(feature_importance)
-            image = utils.net.feature_importance_plot(feature_imp)
+            image = tfbio.net.feature_importance_plot(feature_imp)
             summary_imp.value.add(tag='feature_importance', image=image)
             train_writer.add_summary(summary_imp, global_step.eval())
 
@@ -411,7 +411,7 @@ for set_name, tab in predictions.groupby('set'):
                          annot_kws={'title': '%s set (rmse=%.3f)'
                                              % (set_name, rmse[set_name])})
 
-    image = utils.net.custom_summary_image(grid.fig)
+    image = tfbio.net.custom_summary_image(grid.fig)
     grid.fig.savefig(prefix + '-%s.pdf' % set_name)
     summary_pred = tf.Summary()
     summary_pred.value.add(tag='predictions_%s' % (set_name),
