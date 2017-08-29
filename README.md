@@ -43,6 +43,7 @@
 # Requirements
 In order to use the provided model and run all scripts you need:
 * Python 3.5
+* tfbio 0.1
 * tensorflow 1.0 (GPU-enabled version is **highly** recommended)
 * openbabel 2.4
 * numpy 1.12
@@ -67,7 +68,7 @@ conda env create -f environment_cpu.yml
 ```
 Remember to activate your environment before running the scripts:
 ```
-source activate net_test
+source activate pafnucy_env
 ```
 
 # Usage instructions
@@ -76,8 +77,8 @@ source activate net_test
 
 This repository contains trained network, which can be used to score molecular complexes.
 As input it takes 3D grids, with each grid point described with 19 atomic features.
-You can create grids from molecular structures using functions defined in `utils.data` package or with `prepare.py` script.
-Then you can load the network and make predictions with functions from `utils.net` package and Tensorflow API or with `predict.py` script.
+You can create grids from molecular structures using functions defined in `tfbio.data` package or with `prepare.py` script.
+Then you can load the network and make predictions with functions from `tfbio.net` package and Tensorflow API or with `predict.py` script.
 
 ### Prepare complexes
 
@@ -148,7 +149,7 @@ use sd as scaling factor
 ## Train
 
 In order to build and train new network use `train.py` script.
-You can also do it manually using `utils.net` module and Tensorflow API.
+You can also do it manually using `tfbio.net` module and Tensorflow API.
 
 First, prepare the structures and split your data into 3 subsets: training, validation and test set.
 Save each subset as HDF file named `training_set.hdf` etc, with each complex as a dataset and its binding affinity saved in 'affinity' atribute for this dataset.
