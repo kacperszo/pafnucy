@@ -219,7 +219,7 @@ graph = tfbio.net.make_SB_network(isize=isize, in_chnls=in_chnls, osize=osize,
                                   pool_patch=args.pool_patch,
                                   conv_channels=args.conv_channels,
                                   dense_sizes=args.dense_sizes,
-                                  kp=args.kp, lmbda=args.lmbda,
+                                  lmbda=args.lmbda,
                                   learning_rate=args.learning_rate)
 
 
