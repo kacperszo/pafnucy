@@ -89,6 +89,10 @@ parser.add_argument('--max_dist', '-d', default=10.0, type=float,
 parser.add_argument('--batch', '-b', type=batch_size,
                     default=0,
                     help='batch size. If set to 0, predict for all complexes at once.')
+parser.add_argument('--charge_scaler', type=float, default=0.425896,
+                    help='scaling factor for the charge'
+                         ' (use the same factor when preparing data for'
+                         ' training and and for predictions)')
 parser.add_argument('--output', '-o', type=output_file,
                     default='./predictions.csv',
                     help='name for the CSV file with the predictions')
@@ -102,6 +106,8 @@ args = parser.parse_args()
 # TODO: avarage prediction for different rotations (optional)
 
 
+charge_column = tfbio.data.FEATURE_NAMES.index('partialcharge')
+
 coords = []
 features = []
 names = []
@@ -112,6 +118,7 @@ with h5py.File(args.input, 'r') as f:
         dataset = f[name]
         coords.append(dataset[:, :3])
         features.append(dataset[:, 3:])
+
 
 if args.verbose:
     print('loaded %s complexes\n' % len(coords))
@@ -133,11 +140,13 @@ def __get_batch():
         if len(batch_grid) == args.batch:
             # if batch is not specified it will never happen
             batch_grid = np.vstack(batch_grid)
+            batch_grid[..., charge_column] /= args.charge_scaler
             yield batch_grid
             batch_grid = []
 
     if len(batch_grid) > 0:
         batch_grid = np.vstack(batch_grid)
+        batch_grid[..., charge_column] /= args.charge_scaler
         yield batch_grid
 
 

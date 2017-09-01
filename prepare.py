@@ -68,10 +68,6 @@ parser.add_argument('--ligand_format', type=str, default='mol2',
 parser.add_argument('--pocket_format', type=str, default='mol2',
                     help='file format for the pocket,'
                          ' must be supported by openbabel')
-parser.add_argument('--charge_scaler', type=float, default=0.425896,
-                    help='scaling factor for the charge'
-                         ' (use the same factor when preparing data for'
-                         ' training and and for predictions)')
 parser.add_argument('--output', '-o', default='./complexes.hdf',
                     type=output_file,
                     help='name for the file with the prepared structures')
@@ -86,7 +82,6 @@ args = parser.parse_args()
 
 # TODO: training set preparation (allow to read affinities)
 
-charge_column = tfbio.data.FEATURE_NAMES.index('partialcharge')
 
 num_pockets = len(args.pocket)
 num_ligands = len(args.ligand)
@@ -145,9 +140,6 @@ with h5py.File(args.output, args.mode) as f:
 
         ligand_coords, ligand_features = tfbio.data.get_features(ligand, moltype=1)
         pocket_coords, pocket_features = next(pocket_generator)
-
-        for features in (ligand_features, pocket_features):
-            features /= args.charge_scaler
 
         centroid = ligand_coords.mean(axis=0)
         ligand_coords -= centroid
