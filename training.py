@@ -158,10 +158,6 @@ print('\n---- DATA ----\n')
 
 tmp = get_batch('training', range(50))
 
-assert ((tmp[:, :, :, :, columns['moltype']] == 0.0)
-        | (tmp[:, :, :, :, columns['moltype']] == 1.0)
-        | (tmp[:, :, :, :, columns['moltype']] == -1.0)).all()
-
 assert ((tmp[:, :, :, :, columns['moltype']] == 0.0).any()
         and (tmp[:, :, :, :, columns['moltype']] == 1.0).any()
         and (tmp[:, :, :, :, columns['moltype']] == -1.0).any()).all()
