@@ -1,4 +1,4 @@
-[![build status](https://gitlab.com/marta-sd/affinity-net/badges/master/build.svg)](https://gitlab.com/marta-sd/affinity-net/commits/master)
+[![build status](https://gitlab.com/cheminfIBB/pafnucy/badges/master/build.svg)](https://gitlab.com/cheminfIBB/pafnucy/commits/master)
 
 
 # Hyperparameters
