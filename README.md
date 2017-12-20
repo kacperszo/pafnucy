@@ -3,6 +3,7 @@
 **Pafnucy [pafnutzy]** is a 3D convolutional neural network that predicts binding affinity for protein-ligand complexes.
 It was trained on the [PDBbind](http://pubs.acs.org/doi/abs/10.1021/acs.accounts.6b00491) database and tested on the [CASF](http://pubs.acs.org/doi/pdf/10.1021/ci500081m) "scoring power" benchmark.
 
+We are still working on the final version of the manuscript describing Pafnucy, but the preprint is already available at [arXiv](https://arxiv.org/abs/1712.07042).
 
 # Installation
 
