@@ -7,6 +7,13 @@ We are still working on the final version of the manuscript describing Pafnucy, 
 
 # Installation
 
+Inorder to get Pafnucy, you need to clone this repo:
+
+```
+git clone https://gitlab.com/cheminfIBB/pafnucy
+cd pafnucy
+```
+
 The easiest way to prepre the environment with all required packages is to use [conda](http://conda.io).
 You can create environment with GPU-enabled version of tensorflow with:
 
@@ -25,11 +32,8 @@ Remember to activate your environment before running the scripts:
 source activate pafnucy_env
 ```
 
-Now you just need to clone the repo and you are ready to use Pafnucy:
+Now you are ready to use Pafnucy:
 ```bash
-git clone https://gitlab.com/cheminfIBB/pafnucy
-cd pafnucy
-source activate pafnucy_env
 python prepare.py -l ligand.mol2 -p pocket.mol2 -o data.hdf
 python predict.py -i data.hdf -o predictions.csv
 ```
