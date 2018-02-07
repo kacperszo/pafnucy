@@ -87,7 +87,7 @@ parser.add_argument('--grid_spacing', '-g', default=1.0, type=float,
 parser.add_argument('--max_dist', '-d', default=10.0, type=float,
                     help='max distance from complex center used during training')
 parser.add_argument('--batch', '-b', type=batch_size,
-                    default=0,
+                    default=20,
                     help='batch size. If set to 0, predict for all complexes at once.')
 parser.add_argument('--charge_scaler', type=float, default=0.425896,
                     help='scaling factor for the charge'
