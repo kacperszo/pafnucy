@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 
 import pybel
-import tfbio.data
+from tfbio.data import Featurizer
 
 import os
 
@@ -101,6 +101,9 @@ if args.verbose:
     print('\n\n')
 
 
+featurizer = Featurizer()
+
+
 def __get_pocket():
     if num_pockets > 1:
         for pocket_file in args.pocket:
@@ -111,7 +114,7 @@ def __get_pocket():
             except:
                 raise IOError('Cannot read %s file' % pocket_file)
 
-            pocket_coords, pocket_features = tfbio.data.get_features(pocket, moltype=-1)
+            pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
             yield (pocket_coords, pocket_features)
 
     else:
@@ -120,7 +123,7 @@ def __get_pocket():
             pocket = next(pybel.readfile(args.pocket_format, pocket_file))
         except:
             raise IOError('Cannot read %s file' % pocket_file)
-        pocket_coords, pocket_features = tfbio.data.get_features(pocket, moltype=-1)
+        pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
         for _ in range(num_ligands):
             yield (pocket_coords, pocket_features)
 
@@ -138,7 +141,7 @@ with h5py.File(args.output, args.mode) as f:
         except:
             raise IOError('Cannot read %s file' % ligand_file)
 
-        ligand_coords, ligand_features = tfbio.data.get_features(ligand, moltype=1)
+        ligand_coords, ligand_features = featurizer.get_features(ligand, molcode=1)
         pocket_coords, pocket_features = next(pocket_generator)
 
         centroid = ligand_coords.mean(axis=0)
