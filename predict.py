@@ -3,7 +3,7 @@ import pandas as pd
 import h5py
 
 import tensorflow as tf
-import tfbio.data
+from tfbio.data import Featurizer, make_grid
 
 import os
 
@@ -105,8 +105,9 @@ args = parser.parse_args()
 
 # TODO: avarage prediction for different rotations (optional)
 
+featurizer = Featurizer()
 
-charge_column = tfbio.data.FEATURE_NAMES.index('partialcharge')
+charge_column = featurizer.FEATURE_NAMES.index('partialcharge')
 
 coords = []
 features = []
@@ -135,8 +136,8 @@ def __get_batch():
             print('%s samples per batch\n' % args.batch)
 
     for crd, f in zip(coords, features):
-        batch_grid.append(tfbio.data.make_grid(crd, f, max_dist=args.max_dist,
-                                               grid_resolution=args.grid_spacing))
+        batch_grid.append(make_grid(crd, f, max_dist=args.max_dist,
+                          grid_resolution=args.grid_spacing))
         if len(batch_grid) == args.batch:
             # if batch is not specified it will never happen
             batch_grid = np.vstack(batch_grid)

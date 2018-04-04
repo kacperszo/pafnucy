@@ -9,7 +9,7 @@ import h5py
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-import tfbio.data
+from tfbio.data import Featurizer, make_grid, rotate
 import tfbio.net
 
 import os.path
@@ -98,10 +98,12 @@ args = parser.parse_args()
 prefix = os.path.abspath(args.output_prefix) + '-' + timestamp
 logdir = os.path.join(os.path.abspath(args.log_dir), os.path.split(prefix)[1])
 
-print('\n---- FEATURES ----\n')
-print('atomic properties:', tfbio.data.FEATURE_NAMES)
+featurizer = Featurizer()
 
-columns = {name: i for i, name in enumerate(tfbio.data.FEATURE_NAMES)}
+print('\n---- FEATURES ----\n')
+print('atomic properties:', featurizer.FEATURE_NAMES)
+
+columns = {name: i for i, name in enumerate(featurizer.FEATURE_NAMES)}
 
 ids = {}
 affinity = {}
@@ -144,9 +146,9 @@ def get_batch(dataset_name, indices, rotation=0):
     global coords, features, std
     x = []
     for i, idx in enumerate(indices):
-        coords_idx = tfbio.data.rotate(coords[dataset_name][idx], rotation)
+        coords_idx = rotate(coords[dataset_name][idx], rotation)
         features_idx = features[dataset_name][idx]
-        x.append(tfbio.data.make_grid(coords_idx, features_idx,
+        x.append(make_grid(coords_idx, features_idx,
                  grid_resolution=args.grid_spacing,
                  max_dist=args.max_dist))
     x = np.vstack(x)
@@ -158,12 +160,12 @@ print('\n---- DATA ----\n')
 
 tmp = get_batch('training', range(50))
 
-assert ((tmp[:, :, :, :, columns['moltype']] == 0.0).any()
-        and (tmp[:, :, :, :, columns['moltype']] == 1.0).any()
-        and (tmp[:, :, :, :, columns['moltype']] == -1.0).any()).all()
+assert ((tmp[:, :, :, :, columns['molcode']] == 0.0).any()
+        and (tmp[:, :, :, :, columns['molcode']] == 1.0).any()
+        and (tmp[:, :, :, :, columns['molcode']] == -1.0).any()).all()
 
-idx1 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['moltype']] == 1.0)]
-idx2 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['moltype']] == -1.0)]
+idx1 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['molcode']] == 1.0)]
+idx2 = [[i[0]] for i in np.where(tmp[:, :, :, :, columns['molcode']] == -1.0)]
 
 print('\nexamples:')
 for mtype, mol in [['ligand', tmp[idx1]], ['protein', tmp[idx2]]]:
