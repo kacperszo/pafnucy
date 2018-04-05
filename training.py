@@ -2,7 +2,7 @@ import numpy as np
 np.random.seed(123)
 
 import pandas as pd
-from math import sqrt
+from math import sqrt, ceil
 
 import h5py
 
@@ -190,7 +190,7 @@ osize = 1
 for set_name, set_size in ds_sizes.items():
     print('%s %s samples' % (set_size, set_name))
 
-num_batches = {dataset: size // args.batch_size
+num_batches = {dataset: ceil(size / args.batch_size)
                for dataset, size in ds_sizes.items()}
 
 print('\n---- MODEL ----\n')
@@ -256,6 +256,9 @@ def batches(set_name):
 
 err = float('inf')
 
+train_sample = min(args.batch_size, len(features['training']))
+val_sample = min(args.batch_size, len(features['validation']))
+
 print('\n---- TRAINING ----\n')
 with tf.Session(graph=graph) as session:
     session.run(tf.global_variables_initializer())
@@ -268,8 +271,8 @@ with tf.Session(graph=graph) as session:
 
     stats_net = session.run(
         net_summaries,
-        feed_dict={x: get_batch('training', range(args.batch_size)),
-                   t: affinity['training'][:args.batch_size],
+        feed_dict={x: get_batch('training', range(train_sample)),
+                   t: affinity['training'][:train_sample],
                    keep_prob: 1.0}
     )
 
@@ -290,8 +293,8 @@ with tf.Session(graph=graph) as session:
             # SAVE STATS - per rotation #
             stats_t, stats_net = session.run(
                 [training_summaries, net_summaries],
-                feed_dict={x: get_batch('training', x_t[:args.batch_size]),
-                           t: y_t[:args.batch_size],
+                feed_dict={x: get_batch('training', x_t[:train_sample]),
+                           t: y_t[:train_sample],
                            keep_prob: 1.0}
             )
 
@@ -300,8 +303,8 @@ with tf.Session(graph=graph) as session:
 
             stats_v = session.run(
                 training_summaries,
-                feed_dict={x: get_batch('validation', range(args.batch_size)),
-                           t: affinity['validation'][:args.batch_size],
+                feed_dict={x: get_batch('validation', range(val_sample)),
+                           t: affinity['validation'][:val_sample],
                            keep_prob: 1.0}
             )
 
