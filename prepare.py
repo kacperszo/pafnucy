@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import h5py
 
 import pybel
@@ -44,6 +45,7 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     epilog='''This script reads the structures of ligands and pocket(s),
     prepares them for the neural network and saves in a HDF file.
+    It also saves affinity values as attributes, if they are provided.
     You can either specify a separate pocket for each ligand or a single
     pocket that will be used for all ligands. We assume that your structures
     are fully prepared.\n\n
@@ -74,6 +76,11 @@ parser.add_argument('--output', '-o', default='./complexes.hdf',
 parser.add_argument('--mode', '-m', default='w',
                     type=str, choices=['r+', 'w', 'w-', 'x', 'a'],
                     help='mode for the output file (see h5py documentation)')
+parser.add_argument('--affinities', '-a', default=None, type=input_file,
+                    help='CSV table with affinity values.'
+                         ' It must contain two columns: `name` which must be'
+                         ' equal to ligand\'s file name without extenstion,'
+                         ' and `affinity` which must contain floats')
 parser.add_argument('--verbose', '-v', default=True, type=string_bool,
                     help='whether to print messages')
 
@@ -100,6 +107,16 @@ if args.verbose:
             print(' ligand: %s, pocket: %s' % (ligand_file, pocket_file))
     print('\n\n')
 
+
+if args.affinities is not None:
+    affinities = pd.read_csv(args.affinities)
+    if 'affinity' not in affinities.columns:
+        raise ValueError('There is no `affinity` column in the table')
+    elif 'name' not in affinities.columns:
+        raise ValueError('There is no `name` column in the table')
+    affinities = affinities.set_index('name')['affinity']
+else:
+    affinities = None
 
 featurizer = Featurizer()
 
@@ -156,5 +173,7 @@ with h5py.File(args.output, args.mode) as f:
 
         dataset = f.create_dataset(name, data=data, shape=data.shape,
                                    dtype='float32', compression='lzf')
+        if affinities is not None:
+            dataset.attrs['affinity'] = affinities.loc[name]
 if args.verbose:
     print('\n\ncreated %s with %s structures' % (args.output, num_ligands))

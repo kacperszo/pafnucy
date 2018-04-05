@@ -158,7 +158,7 @@ def get_batch(dataset_name, indices, rotation=0):
 
 print('\n---- DATA ----\n')
 
-tmp = get_batch('training', range(50))
+tmp = get_batch('training', range(min(50, len(features['training']))))
 
 assert ((tmp[:, :, :, :, columns['molcode']] == 0.0).any()
         and (tmp[:, :, :, :, columns['molcode']] == 1.0).any()
