@@ -1,13 +1,13 @@
 [![build status](https://gitlab.com/cheminfIBB/pafnucy/badges/master/build.svg)](https://gitlab.com/cheminfIBB/pafnucy/commits/master)
 
-**Pafnucy [pafnutzy]** is a 3D convolutional neural network that predicts binding affinity for protein-ligand complexes.
+**Pafnucy [paphnusy]** is a 3D convolutional neural network that predicts binding affinity for protein-ligand complexes.
 It was trained on the [PDBbind](http://pubs.acs.org/doi/abs/10.1021/acs.accounts.6b00491) database and tested on the [CASF](http://pubs.acs.org/doi/pdf/10.1021/ci500081m) "scoring power" benchmark.
 
 We are still working on the final version of the manuscript describing Pafnucy, but the preprint is already available at [arXiv](https://arxiv.org/abs/1712.07042).
 
 # Installation
 
-Inorder to get Pafnucy, you need to clone this repo:
+In order to get Pafnucy, you need to clone this repo:
 
 ```
 git clone https://gitlab.com/cheminfIBB/pafnucy
@@ -184,7 +184,7 @@ python training.py --help
 # Requirements
 In order to use the provided model and run all scripts you need:
 * Python 3.5
-* tfbio 0.1
+* tfbio 0.3
 * tensorflow 1.0 (GPU-enabled version is **highly** recommended)
 * openbabel 2.4
 * numpy 1.12
