@@ -38,6 +38,9 @@ python prepare.py -l ligand.mol2 -p pocket.mol2 -o data.hdf
 python predict.py -i data.hdf -o predictions.csv
 ```
 
+
+If get a segmentation fault with these commands, see [this discussion](https://gitlab.com/cheminfIBB/pafnucy/issues/6#note_130710151) for possible solution.
+
 # Usage instructions
 
 ## Predict
