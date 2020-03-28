@@ -1,4 +1,4 @@
-[![build status](https://gitlab.com/cheminfIBB/pafnucy/badges/master/build.svg)](https://gitlab.com/cheminfIBB/pafnucy/commits/master)
+[![pipeline status](https://gitlab.com/cheminfIBB/pafnucy/badges/master/pipeline.svg)](https://gitlab.com/cheminfIBB/pafnucy/commits/master)
 
 **Pafnucy [paphnusy]** is a 3D convolutional neural network that predicts binding affinity for protein-ligand complexes.
 It was trained on the [PDBbind](http://pubs.acs.org/doi/abs/10.1021/acs.accounts.6b00491) database and tested on the [CASF](http://pubs.acs.org/doi/pdf/10.1021/ci500081m) "scoring power" benchmark.
@@ -54,6 +54,7 @@ Then you can load the network and make predictions with functions from `tfbio.ne
 
 Save pockets and docked ligands into separate files and use `prepare.py` to create HDF file with atoms' coordinates and features.
 By default, script expects mol2 files, but you can use any appropriate file format supported by [Open Babel](http://openbabel.org).
+Note that Pafnucy uses protonation and partial charges to calculate features, so make sure that your files contain this information.
 
 If you have a single file with a protein structure, use:
 
