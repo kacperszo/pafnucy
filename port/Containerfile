@@ -1,0 +1,42 @@
+# Pafnucy, ported. torch instead of TensorFlow 1.2, openbabel for the featuriser.
+#
+# The original stack (tensorflow-gpu 1.2, python 3.6, cudatoolkit 8.0, cuDNN 5.1) cannot run
+# on any current GPU, and `tfbio` — the authors' featuriser — is gone from its conda channel.
+# Both halves were reimplemented and checked against the originals:
+#
+#   network      port/verify_port.py       max|Δ| 9.5e-07 against the restored TF graph
+#   featuriser   port/compare_featurizer.py  every numeric column exact; 8 of 989 atoms differ
+#                                            on hyb/aromatic/acceptor, which is Open Babel's
+#                                            perception changing since 2017, worth <=0.14 pKd
+#
+# The reference image (Containerfile.reference) still exists and still emits those goldens, so
+# the comparison can be rerun rather than taken on trust.
+FROM docker.io/mambaorg/micromamba:1.5.8
+
+USER root
+ENV PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 MPLBACKEND=Agg
+
+# openbabel has no pip wheel; it carries the SMARTS matching and partial charges the
+# featuriser needs, and its version is why the last 0.8% of atom features cannot be matched
+# exactly — pinned so that residual stays reproducible rather than drifting further.
+RUN micromamba install -y -n base -c conda-forge \
+        python=3.10 "openbabel=3.1.1" "numpy<2" libstdcxx-ng \
+    && micromamba clean --all --yes
+ENV PATH=/opt/conda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/opt/conda/lib
+
+# From PyPI, so the wheel is the cu124 build: this is a 3-D CNN and the grid is 21^3 x 19,
+# which is worth putting on a card.
+RUN pip install --no-cache-dir torch==2.5.1 pandas scipy tqdm
+
+RUN python -c "import torch; from openbabel import pybel; import numpy; \
+print('env ok', torch.__version__, 'cuda', torch.version.cuda)"
+
+WORKDIR /work
+COPY . /work
+
+RUN python -c "import sys; sys.path.insert(0,'/work/port'); \
+from pafnucy_torch import Pafnucy; from featurizer import FEATURE_NAMES; \
+m = Pafnucy(); n = sum(p.numel() for p in m.parameters()); \
+assert len(FEATURE_NAMES) == 19, FEATURE_NAMES; \
+print('pafnucy imports ok,', f'{n:,}', 'parameters')"
