@@ -37,8 +37,12 @@ def build_grid(complex_dir: Path, cid: str, max_dist: float, spacing: float) -> 
         raise FileNotFoundError(f"no ligand/pocket file for {cid} among {suffixes}")
 
     ligand = read(["_ligand.mol2", "_ligand.sdf"])
-    # the pocket if one was prepared, otherwise the whole protein
-    pocket = read(["_pocket.mol2", "_protein.pdb"])
+    # The pocket, and only the whole protein as a last resort. This is not just about the
+    # grid — that clips at max_dist anyway — but about the featuriser: Open Babel assigns
+    # partial charges over the whole molecule it is given, so every atom gets a different
+    # charge when the input is a full protein rather than the prepared pocket the authors
+    # trained on. PDBbind ships `_pocket.pdb`; Pafnucy's own preparation used the equivalent.
+    pocket = read(["_pocket.mol2", "_pocket.pdb", "_protein.pdb"])
 
     lig_coords, lig_feats = featurize(ligand, molcode=1.0)
     poc_coords, poc_feats = featurize(pocket, molcode=-1.0)
