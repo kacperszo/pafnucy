@@ -1,0 +1,32 @@
+# Pafnucy's reference tier — the original network, run to produce golden outputs.
+#
+# The authors' environment is tensorflow-gpu 1.2, python 3.6, cudatoolkit 8.0 and cuDNN 5.1
+# (2017). CUDA 8 predates every GPU in this project and python 3.6 is EOL, so that stack is
+# not reproducible here and does not need to be: TF 2.x still reads TF-1 checkpoints and can
+# restore and run a TF-1 meta graph through `tf.compat.v1`. CPU-only on purpose — this image
+# exists to emit reference numbers, not to be fast.
+#
+# The architecture is not in the repo. `training.py` calls `tfbio.net.make_SB_network`, and
+# `tfbio` is the authors' own package, published on a conda channel that no longer resolves.
+# So the `.meta` graph in the checkpoint is the only authoritative description of the model,
+# and `extract_reference.py` dumps it rather than trusting the README's summary.
+#
+# tfbio is attempted but not required: without it the featuriser is unavailable and only the
+# network's own arithmetic can be compared, which is still the part a port has to get right.
+FROM docker.io/library/python:3.11-slim
+
+ENV PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 TF_CPP_MIN_LOG_LEVEL=2
+
+RUN pip install --no-cache-dir \
+        "tensorflow-cpu==2.16.2" \
+        "numpy<2" \
+        h5py pandas
+
+# Optional. If the wheel is gone, the build still succeeds and the featuriser comparison is
+# simply skipped — better than pinning the whole image to a package that may not exist.
+RUN pip install --no-cache-dir tfbio || echo "tfbio unavailable; featuriser comparison skipped"
+
+RUN python -c "import tensorflow as tf; print('tf', tf.__version__); \
+import tensorflow.compat.v1 as v1; print('compat.v1 available')"
+
+WORKDIR /work

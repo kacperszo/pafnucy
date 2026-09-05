@@ -1,5 +1,5 @@
-*.pyc
-__pycache__
-.cache
-.ipynb_checkpoints
-test-*
+# Extracted from the published checkpoint by port/extract_reference.py; regenerate rather
+# than commit (weights.npz is 150 MB).
+port/reference/
+*.npz
+__pycache__/
