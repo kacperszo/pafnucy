@@ -16,18 +16,25 @@ The 8 atoms differ on hybridisation, aromaticity and acceptor — Open Babel's p
 changing since 2017, worth at most 0.14 pKd.
 
 ```bash
-# the reference image first: the modern build extracts the weights out of the
-# TensorFlow-1 checkpoint in its own first stage
-podman build --format=docker -f port/Containerfile.reference -t pafnucy-ref:latest .
-podman build --format=docker -f port/Containerfile           -t pafnucy-torch:latest .
+podman build --format=docker -f port/Containerfile -t pafnucy-torch:latest .
 
 gnnb verify --variant pafnucy.torch --dataset data/CASF-2016/coreset
 gnnb run --variant pafnucy.torch --capability predict --dataset <complexes> --gpu
 gnnb run --variant pafnucy.torch --capability embed   --dataset <complexes>
 ```
 
-The weights are baked into the image rather than committed: they exist only inside the
-authors' checkpoint, and the array is 153 MB, most of it Adam moments inference never reads.
+`port/weights.npz` is committed — 49 MB, the seventeen tensors inference reads. **The authors'
+TensorFlow checkpoint is not in this fork**: it is 146 MB, two thirds of it Adam's optimizer
+slots, and over GitHub's file limit. Nothing in the run path needs it. Re-deriving the weights,
+or rerunning `port/verify_port.py` against the original graph, does:
+
+```bash
+git fetch upstream && git checkout upstream/master -- results/
+podman build --format=docker -f port/Containerfile.reference -t pafnucy-ref:latest .
+```
+
+`upstream` points at the authors' repository on GitLab, which is where that checkpoint has
+always lived.
 
 The encoder boundary is unusually clean — `features()` is everything up to the last hidden
 layer and the head is a single `Linear(200, 1)`. `port/train.py` fine-tunes with the encoder
