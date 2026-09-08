@@ -29,7 +29,13 @@ import numpy as np
 
 
 def dump_weights(checkpoint: str, out: Path) -> dict:
-    """Every variable in the checkpoint, by name, with its shape and values."""
+    """The checkpoint's variables. The manifest lists all of them; the npz holds the weights.
+
+    Adam's two slots per variable are recorded in the manifest and left out of the array file.
+    They are two thirds of the checkpoint — 146 MB against 49 — and inference never reads
+    them: `load_tf_weights` asks for the three convolutions, the three fully connected layers
+    and the output. Writing them out was what made the dump too large to keep beside the code.
+    """
     import tensorflow as tf
 
     reader = tf.train.load_checkpoint(checkpoint)
@@ -37,8 +43,10 @@ def dump_weights(checkpoint: str, out: Path) -> dict:
     arrays, manifest = {}, {}
     for name in sorted(shapes):
         value = reader.get_tensor(name)
-        arrays[name] = value
-        manifest[name] = {"shape": list(np.shape(value)), "dtype": str(np.asarray(value).dtype)}
+        manifest[name] = {"shape": list(np.shape(value)), "dtype": str(np.asarray(value).dtype),
+                          "kept": "/optimizer" not in name}
+        if "/optimizer" not in name:
+            arrays[name] = value
     np.savez(out / "weights.npz", **arrays)
     (out / "weights.json").write_text(json.dumps(manifest, indent=2))
     for name, meta in manifest.items():

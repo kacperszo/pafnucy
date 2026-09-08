@@ -12,18 +12,12 @@
 # The reference image (Containerfile.reference) still exists and still emits those goldens, so
 # the comparison can be rerun rather than taken on trust.
 #
-# It also supplies the weights. The port's parameters live only inside the authors' TensorFlow-1
-# checkpoint, and `extract_reference.py` needs TensorFlow to read it — so the first stage below
-# runs there and hands the arrays over. Committing them instead would put 153 MB in git, most of
-# it Adam moments that inference never touches, and would break the link between the weights and
-# the checkpoint they came from: rebuild this image and the extraction runs again.
-FROM localhost/pafnucy-ref:latest AS weights
-
-COPY . /src
-RUN python /src/port/extract_reference.py \
-        --checkpoint /src/results/batch5-2017-06-05T07:58:47-best --out /weights \
-    && ls -l /weights/weights.npz
-
+# The weights are committed beside the code as `port/weights.npz` — 49 MB, the seventeen
+# tensors inference actually reads. The authors' TensorFlow checkpoint holds 146 MB because
+# two thirds of it is Adam's slots, which is over GitHub's file limit and useless to us;
+# `extract_reference.py` regenerates the npz from it whenever the derivation needs rechecking.
+# The checkpoint itself stays with upstream: `git fetch upstream && git checkout
+# upstream/master -- results/`.
 FROM docker.io/mambaorg/micromamba:1.5.8
 
 USER root
@@ -47,7 +41,6 @@ print('env ok', torch.__version__, 'cuda', torch.version.cuda)"
 
 WORKDIR /work
 COPY . /work
-COPY --from=weights /weights/weights.npz /work/port/weights.npz
 
 RUN python -c "import sys; sys.path.insert(0,'/work/port'); \
 from pafnucy_torch import Pafnucy; from featurizer import FEATURE_NAMES; \

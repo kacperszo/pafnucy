@@ -3,3 +3,10 @@
 port/reference/
 *.npz
 __pycache__/
+
+# The authors' TensorFlow checkpoint: 146 MB, two thirds of it Adam's optimizer slots, and
+# over GitHub's 100 MB file limit. The weights inference needs are committed as
+# port/weights.npz instead. To re-derive them, or to rerun port/verify_port.py against the
+# original graph, fetch the checkpoint back:
+#     git fetch upstream && git checkout upstream/master -- results/
+results/*.data-*
