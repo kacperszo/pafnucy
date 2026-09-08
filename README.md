@@ -1,3 +1,47 @@
+<!-- gnn-benchmark:begin -->
+# Running this in gnn-benchmark
+
+The original is TensorFlow 1.2 on CUDA 8 (2017), a stack that runs on no current GPU, and
+`tfbio` — the authors' featuriser — is gone from its conda channel. **Both halves were ported
+to PyTorch and Open Babel and checked against the originals**, which the reference image still
+emits, so the comparison can be rerun rather than taken on trust:
+
+| what | check | result |
+|---|---|---|
+| the network | `port/verify_port.py` | max abs diff 9.5e-07 against the restored TF graph |
+| the featuriser | `port/compare_featurizer.py` | every numeric column exact; 8 of 989 atoms differ |
+| end to end | `gnnb verify --variant pafnucy.torch` | 285/285, **max abs diff 0** |
+
+The 8 atoms differ on hybridisation, aromaticity and acceptor — Open Babel's perception
+changing since 2017, worth at most 0.14 pKd.
+
+```bash
+# the reference image first: the modern build extracts the weights out of the
+# TensorFlow-1 checkpoint in its own first stage
+podman build --format=docker -f port/Containerfile.reference -t pafnucy-ref:latest .
+podman build --format=docker -f port/Containerfile           -t pafnucy-torch:latest .
+
+gnnb verify --variant pafnucy.torch --dataset data/CASF-2016/coreset
+gnnb run --variant pafnucy.torch --capability predict --dataset <complexes> --gpu
+gnnb run --variant pafnucy.torch --capability embed   --dataset <complexes>
+```
+
+The weights are baked into the image rather than committed: they exist only inside the
+authors' checkpoint, and the array is 153 MB, most of it Adam moments inference never reads.
+
+The encoder boundary is unusually clean — `features()` is everything up to the last hidden
+layer and the head is a single `Linear(200, 1)`. `port/train.py` fine-tunes with the encoder
+frozen or initialised from those weights.
+
+**Score against the pocket, not the whole protein**: R goes 0.564 -> 0.696 with the same
+network. Three things must be right or the weights load cleanly and the numbers come out
+wrong — channel layout, flatten order and `ceil_mode` pooling; all three are documented in
+`port/pafnucy_torch.py`.
+
+<!-- gnn-benchmark:end -->
+
+---
+
 [![pipeline status](https://gitlab.com/cheminfIBB/pafnucy/badges/master/pipeline.svg)](https://gitlab.com/cheminfIBB/pafnucy/commits/master)
 
 **Pafnucy [paphnusy]** is a 3D convolutional neural network that predicts binding affinity for protein-ligand complexes.
