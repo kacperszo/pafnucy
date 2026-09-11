@@ -25,8 +25,14 @@ from pafnucy_torch import CHARGE_SCALER, Pafnucy, grid_to_torch, load_tf_weights
 CHARGE_COLUMN = 12
 
 
-def build_grid(complex_dir: Path, cid: str, max_dist: float, spacing: float) -> np.ndarray:
-    """One complex -> one grid, centred on the ligand as the authors' preparation does."""
+def read_complex(complex_dir: Path, cid: str) -> tuple[np.ndarray, np.ndarray]:
+    """One complex -> (coords centred on the ligand, features), before voxelisation.
+
+    Split out of `build_grid` so `train.py` can reach it. Training and inference have to
+    featurise through the same code or the model is fitted on one distribution and scored on
+    another — which would look like a modest, plausible loss of accuracy rather than a bug.
+    The grid itself is built separately because training may rotate the coordinates first.
+    """
     from openbabel import pybel
 
     def read(suffixes):
@@ -49,7 +55,12 @@ def build_grid(complex_dir: Path, cid: str, max_dist: float, spacing: float) -> 
     centroid = lig_coords.mean(axis=0)
     coords = np.vstack([lig_coords - centroid, poc_coords - centroid])
     feats = np.vstack([lig_feats, poc_feats])
+    return coords, feats
 
+
+def build_grid(complex_dir: Path, cid: str, max_dist: float, spacing: float) -> np.ndarray:
+    """One complex -> one grid, centred on the ligand as the authors' preparation does."""
+    coords, feats = read_complex(complex_dir, cid)
     grid = make_grid(coords, feats, max_dist=max_dist, grid_resolution=spacing)
     # predict.py scales the partial-charge channel before the grid enters the network
     grid[..., CHARGE_COLUMN] /= CHARGE_SCALER
