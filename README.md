@@ -45,6 +45,67 @@ network. Three things must be right or the weights load cleanly and the numbers 
 wrong — channel layout, flatten order and `ceil_mode` pooling; all three are documented in
 `port/pafnucy_torch.py`.
 
+## Running it without the harness
+
+This fork runs on its own; the benchmark adds bookkeeping, not capability. Every
+command below is generated from the adapter by `gnnb howto`, so it cannot drift from
+what the harness actually runs — regenerate with `python tools/sync_model_readmes.py`.
+
+All of them run with `--network=none` and a read-only root filesystem. Nothing is
+fetched at run time; dependencies are resolved when the image is built.
+
+### What it eats
+
+One directory per complex, named after it:
+
+    <complexes>/<id>/<id>_protein.pdb
+    <complexes>/<id>/<id>_ligand.sdf      # or .mol2; several models try both
+
+Voxelises the complex onto a 21x21x21 grid of 19 channels with Open Babel. Nothing beyond the standard layout.
+
+### Build
+
+```bash
+podman build --format=docker -f port/Containerfile -t pafnucy-torch:latest .
+podman build --format=docker -f port/Containerfile.reference -t pafnucy-ref:latest .  # TF, for deriving the weights
+```
+
+### Run
+
+```bash
+# pafnucy.torch — localhost/pafnucy-torch:latest
+# source: models/pafnucy
+
+# predict
+podman run --rm \
+    --network=none --read-only \
+    --tmpfs /tmp:rw,size=2g \
+    -v /path/to/complexes:/data:ro \
+    -v /path/to/outputs:/outputs:rw,U \
+    localhost/pafnucy-torch:latest \
+    sh -c 'cd /work/port && python predict_complexes.py --complexes /data --weights /work/port/weights.npz --out /outputs --device cpu'
+
+# embed
+podman run --rm \
+    --network=none --read-only \
+    --tmpfs /tmp:rw,size=2g \
+    -v /path/to/complexes:/data:ro \
+    -v /path/to/outputs:/outputs:rw,U \
+    localhost/pafnucy-torch:latest \
+    sh -c 'cd /work/port && python predict_complexes.py --complexes /data --weights /work/port/weights.npz --out /outputs --device cpu --embed'
+```
+
+### What comes out
+
+| file | holds |
+|---|---|
+| `predictions.csv` | `complex_id,y_pred` |
+| `embeddings.npz` | `ids` and `vectors`, 200-dim — the last hidden layer, which the authors' own `features()` returns. The convolutions have already pooled the grid, so nothing is invented |
+
+### Before you trust the numbers
+
+**The weights are derived, not downloaded.** `port/weights.npz` holds the seventeen tensors inference reads, extracted from the authors' TensorFlow-1 checkpoint by `port/extract_reference.py` running under the reference image. The checkpoint itself is not in this fork — it is 146 MB of mostly Adam moments and over GitHub's file limit — so `git fetch upstream` brings it back when the derivation needs rechecking.
+
 <!-- gnn-benchmark:end -->
 
 ---
