@@ -40,6 +40,20 @@ RUN python -c "import torch; from openbabel import pybel; import numpy; \
 print('env ok', torch.__version__, 'cuda', torch.version.cuda)"
 
 WORKDIR /work
+# **This needs `port/weights.npz`, which is gitignored and therefore not in a fresh clone.**
+# `*.npz` is ignored, the file is 49 MB of derived tensors, and `COPY . /work` picks it up without
+# a word when it happens to be there. The image built on 2026-09-08 carried it; by 2026-09-12 the
+# working tree did not, and the rebuild produced an image that imported fine and had no weights.
+#
+# Two ways to get it, in order of preference:
+#   1. regenerate from the authors' TensorFlow-1 checkpoint:
+#        podman build -f port/Containerfile.reference -t pafnucy-ref:latest .
+#        podman run --rm -v <ckpt dir>:/ckpt:ro -v $PWD/port:/out:rw,U pafnucy-ref:latest \
+#            python /work/port/extract_reference.py --checkpoint /ckpt/... --out /out/weights.npz
+#      The checkpoint is not in this fork — 146 MB, mostly Adam moments, over GitHub's limit —
+#      so `git fetch upstream` brings it back first.
+#   2. copy it out of an image that still has one:
+#        podman run --rm -v $PWD/port:/out:rw,U pafnucy-torch:latest cp /work/port/weights.npz /out/
 COPY . /work
 
 RUN python -c "import sys; sys.path.insert(0,'/work/port'); \

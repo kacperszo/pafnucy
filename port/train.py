@@ -164,26 +164,68 @@ class ComplexGrids(torch.utils.data.Dataset):
         return grid_to_torch(grid)[0], torch.tensor([self.affinities[i]])
 
 
+#: The head, by parameter-name prefix. The authors' own boundary and an unusually clean one:
+#: `features()` is everything up to the last hidden layer and the head is a single Linear(200, 1).
+#: Must agree with `encoder.head` for pafnucy.torch in harness/registry.toml.
+HEAD_PREFIXES = ("output",)
+
+
+def is_head(name: str) -> bool:
+    """Matched at module boundaries, so `output` never claims an `output_norm`."""
+    return any(name == p or name.startswith(p + ".") for p in HEAD_PREFIXES)
+
+
+def read_encoder(path: str) -> dict:
+    """Load an encoder file, accepting either shape it arrives in.
+
+    `gnnb encoder split` writes `{"encoder": {...}, "encoder_params": n, ...}`; a bare state dict
+    turns up when someone points this at a whole checkpoint. This function exists because the
+    first version did not have it: reading the wrapped form as a state dict took `"encoder"` for
+    a tensor name and failed with `KeyError: 'encoder'` several frames from the cause.
+
+    `weights_only=True` throughout — an encoder file is tensors, and anything else in it is a
+    reason to refuse rather than to relax the loader.
+    """
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    if isinstance(payload, dict) and isinstance(payload.get("encoder"), dict):
+        payload = payload["encoder"]
+    if isinstance(payload, dict) and isinstance(payload.get("model_state_dict"), dict):
+        payload = payload["model_state_dict"]
+    if not isinstance(payload, dict):
+        raise SystemExit(f"{path}: expected a state dict, got {type(payload).__name__}")
+    return {k: v for k, v in payload.items() if torch.is_tensor(v)}
+
+
 def transfer_encoder(model: Pafnucy, path: str, freeze: bool) -> None:
     """Load an encoder into a fresh model, leaving the head untouched.
 
     Overlaid onto the model's own state dict and loaded strictly, rather than with
     `strict=False`: a partial load that silently moved nothing looks identical to success.
     """
-    state = torch.load(path, map_location="cpu", weights_only=True)
+    state = read_encoder(path)
     target = model.state_dict()
-    encoder = {k: v for k, v in state.items() if not k.startswith("output.")}
+
+    head_keys = [k for k in state if is_head(k)]
+    if head_keys:
+        raise SystemExit(
+            f"{path} carries {len(head_keys)} head tensors ({head_keys[:3]}). That is a whole "
+            f"checkpoint, not an encoder — cut it with `gnnb encoder split` first, or the "
+            f"fine-tune starts from the old task's head."
+        )
+    encoder = state
     unknown = [k for k in encoder if k not in target]
-    mismatched = [k for k, v in encoder.items() if target[k].shape != v.shape]
-    if unknown or mismatched:
-        raise SystemExit(f"cannot transfer: unknown {unknown[:3]}, mismatched {mismatched[:3]}")
+    mismatched = [k for k, v in encoder.items() if k in target and target[k].shape != v.shape]
+    uncovered = [k for k in target if k not in encoder and not is_head(k)]
+    if unknown or mismatched or uncovered:
+        raise SystemExit(f"cannot transfer: unknown {unknown[:3]}, mismatched {mismatched[:3]}, "
+                         f"neither encoder nor head {uncovered[:3]}")
     model.load_state_dict({**target, **encoder}, strict=True)
     moved = sum(v.numel() for v in encoder.values())
     print(f"transferred {len(encoder)} tensors / {moved:,} params from {path}")
     if freeze:
         frozen = 0
         for name, param in model.named_parameters():
-            if not name.startswith("output."):
+            if not is_head(name):
                 param.requires_grad_(False)
                 frozen += param.numel()
         print(f"froze {frozen:,} encoder params; the head stays trainable")

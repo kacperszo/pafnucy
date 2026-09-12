@@ -6,6 +6,7 @@ itself, so nothing has to be staged first.
 
 usage:
     python predict_complexes.py --complexes /data --weights /ckpt/weights.npz --out /outputs
+    python predict_complexes.py --complexes /data --model /ckpt/model.pt --out /outputs
 """
 
 from __future__ import annotations
@@ -70,7 +71,11 @@ def build_grid(complex_dir: Path, cid: str, max_dist: float, spacing: float) -> 
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--complexes", required=True)
-    p.add_argument("--weights", required=True, help="weights.npz from extract_reference.py")
+    p.add_argument("--weights", default=None, help="weights.npz from extract_reference.py")
+    p.add_argument("--model", default=None,
+                   help="a torch checkpoint from train.py instead — without this there is no way "
+                        "to score what the trainer produced, and a model you can train but not "
+                        "use is not a trainable model")
     p.add_argument("--out", required=True)
     p.add_argument("--device", default="cpu")
     p.add_argument("--max-dist", type=float, default=10.0)
@@ -81,7 +86,18 @@ def main() -> int:
 
     device = torch.device(args.device if torch.cuda.is_available() or args.device == "cpu"
                           else "cpu")
-    model = load_tf_weights(Pafnucy(), args.weights).to(device).eval()
+    # Exactly one source. Accepting both would leave it ambiguous which set of weights produced
+    # a number, which is the one thing a run directory exists to settle.
+    if bool(args.weights) == bool(args.model):
+        raise SystemExit("pass exactly one of --weights and --model")
+    if args.weights:
+        model = load_tf_weights(Pafnucy(), args.weights)
+    else:
+        # plain tensors, so this opens under weights_only=True
+        model = Pafnucy()
+        model.load_state_dict(
+            torch.load(args.model, map_location="cpu", weights_only=True), strict=True)
+    model = model.to(device).eval()
     print(f"device: {device}")
 
     root = Path(args.complexes)

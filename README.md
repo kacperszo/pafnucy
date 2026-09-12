@@ -93,6 +93,30 @@ podman run --rm \
     -v /path/to/outputs:/outputs:rw,U \
     localhost/pafnucy-torch:latest \
     sh -c 'cd /work/port && python predict_complexes.py --complexes /data --weights /work/port/weights.npz --out /outputs --device cpu --embed'
+
+# train
+podman run --rm \
+    --network=none --read-only \
+    --tmpfs /tmp:rw,size=2g \
+    -v /path/to/complexes:/data:ro \
+    -v /path/to/outputs:/outputs:rw,U \
+    -v /path/to/splits:/splits:ro \
+    -v /path/to/cache:/cache:rw,U \
+    --shm-size 4g \
+    localhost/pafnucy-torch:latest \
+    sh -c 'cd /work/port && python train.py --complexes /data --labels /splits/train.csv --out /outputs --seed 0 --device cpu --val-labels /splits/val.csv --cache /cache --epochs 30'
+
+# finetune  (encoder frozen; drop --freeze-encoder to tune all of it)
+podman run --rm \
+    --network=none --read-only \
+    --tmpfs /tmp:rw,size=2g \
+    -v /path/to/complexes:/data:ro \
+    -v /path/to/outputs:/outputs:rw,U \
+    -v /path/to/splits:/splits:ro \
+    -v /path/to/cache:/cache:rw,U \
+    --shm-size 4g \
+    localhost/pafnucy-torch:latest \
+    sh -c 'cd /work/port && python train.py --complexes /data --labels /splits/train.csv --out /outputs --seed 0 --device cpu --val-labels /splits/val.csv --cache /cache --epochs 30 --init-encoder /ckpt/encoder.pt --freeze-encoder'
 ```
 
 ### What comes out
