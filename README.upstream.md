@@ -1,8 +1,12 @@
 # pafnucy — the authors' original README
 
-Kept for attribution and for the authors' own description of the method. **Its
-instructions are not current for this fork** — see [README.md](README.md) for how to
-build and run what is actually here.
+Reproduced verbatim from `README.md` at upstream commit `187c24c0d9`, the newest commit in
+this history that we did not author. Kept for attribution and for the authors' own
+description of the method. **Its instructions are not current for this fork** — see
+[README.md](README.md) for how to build and run what is actually here.
+
+Verbatim is checked, not claimed: `tools/check_upstream_readmes.py` compares the body
+below against that commit byte for byte.
 
 ---
 
