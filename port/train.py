@@ -231,9 +231,25 @@ def transfer_encoder(model: Pafnucy, path: str, freeze: bool) -> None:
         print(f"froze {frozen:,} encoder params; the head stays trainable")
 
 
-def epoch(model, loader, device, criterion, optimizer) -> tuple[float, float]:
+def epoch(model, loader, device, criterion, optimizer,
+          frozen_encoder: bool = False) -> tuple[float, float]:
+    """One pass over a loader; trains when an optimizer is given.
+
+    **A frozen encoder stays in eval while the head trains.** Pafnucy's dropout (0.5 by
+    default) sits inside `features()` — on the three dense layers of the encoder — so a plain
+    `model.train(True)` would re-sample the frozen representation on every step. That is a
+    defensible regulariser and a different experiment: `--freeze-encoder` is meant to be the
+    trainable analogue of `gnnb probe`, which fits against the deterministic embedding. Until
+    2026-09-24 this function did exactly that, because it had no way of knowing the encoder
+    was frozen.
+    """
     training = optimizer is not None
     model.train(training)
+    if training and frozen_encoder:
+        model.eval()
+        for name, module in model.named_modules():
+            if name and is_head(name):
+                module.train()
     total, n, ys, ps = 0.0, 0, [], []
     with torch.set_grad_enabled(training):
         for x, y in loader:
@@ -331,7 +347,8 @@ def main() -> int:
     history, best, best_epoch = [], float("inf"), -1
     started = time.time()
     for e in range(1, args.epochs + 1):
-        tr_loss, tr_r = epoch(model, train_dl, device, criterion, optimizer)
+        tr_loss, tr_r = epoch(model, train_dl, device, criterion, optimizer,
+                              frozen_encoder=bool(args.freeze_encoder))
         # The first five keys are the harness's standard history columns. Pafnucy's loss *is*
         # MSE, so train_loss and train_mse would be the same column; only the standard name is
         # written rather than both.
