@@ -111,3 +111,14 @@ podman run --rm \
 ## Maintainer notes
 
 `CLAUDE.md` in this directory holds what breaks if it is changed back.
+
+## Training rotation schedule (2026-10-20)
+
+The default is now `--rotation-schedule author24`: 24 full shuffled passes per
+nominal epoch, with all proper cube orientations. This is **24 times the previous
+number of optimiser steps** at the same dataset and batch sizes. Select
+`--rotation-schedule single-none` explicitly for the previous one-pass budget,
+or `single-random` for continuous random augmentation (`--rotate` is its legacy
+alias). Validation stays unrotated. Summaries record the schedule, sample
+presentations and optimiser updates. See PATCHES.md for fidelity limits and
+AGENTS.md for environment constraints; this does not close the charge/pocket gap.

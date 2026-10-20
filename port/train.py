@@ -3,7 +3,9 @@
 The authors' `training.py` builds the graph through `tfbio.net`, logs to TensorBoard, and
 drives TensorFlow 1 sessions; none of that survives the port. Their hyperparameters do, and
 are the defaults here: Adam at 1e-5, batch 20, 20 epochs, dropout 0.5, L2 1e-3, and the model
-kept only when validation error improves.
+kept only when validation error improves. Each default epoch now traverses the
+training set for all 24 discrete cube rotations. Reduced-budget schedules must be
+selected explicitly; their epoch counts are not comparable to author24.
 
 The part that matters beyond reproduction is `--init-encoder` with `--freeze-encoder`: load a
 trained representation, attach a fresh head, and keep training. Pafnucy's encoder/head
@@ -38,6 +40,7 @@ import torch
 import torch.nn as nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from rotation_schedule import RotationBatchSampler, SCHEDULES, transform
 from featurizer import make_grid  # noqa: E402
 from pafnucy_torch import CHARGE_SCALER, Pafnucy, grid_to_torch, load_tf_weights  # noqa: E402
 from predict_complexes import read_complex  # noqa: E402
@@ -70,16 +73,13 @@ class HDFGrids(torch.utils.data.Dataset):
     def __getitem__(self, i: int):
         import h5py
 
+        i, rotation = i if isinstance(i, tuple) else (i, -1 if self.rotate else 0)
         # opened lazily so the handle is created inside each worker process
         if self._file is None:
             self._file = h5py.File(self.path, "r")
         row = self._file[self.ids[i]][:]
         coords, feats = row[:, :3], row[:, 3:]
-        if self.rotate:
-            # the authors augment with 24 axis-aligned orientations; a random rotation matrix
-            # from that group keeps the grid on its axes
-            q, _ = np.linalg.qr(np.random.randn(3, 3))
-            coords = coords @ (q * np.sign(np.linalg.det(q)))
+        coords = transform(coords, rotation)
         grid = make_grid(coords, feats, self.max_dist, self.spacing)
         grid[..., CHARGE_COLUMN] /= CHARGE_SCALER
         return grid_to_torch(grid)[0], torch.tensor([self.affinities[i]])
@@ -96,7 +96,7 @@ class ComplexGrids(torch.utils.data.Dataset):
 
     Open Babel is the slow part, so the `(coords, features)` arrays are cached. The grid is not:
     one is 21^3 x 19 floats and rebuilding it is cheap next to the forward pass, which is also
-    what makes `--rotate` free.
+    allows each rotation to be voxelised from the original coordinates.
     """
 
     def __init__(self, complexes: str, labels: str, cache: str | None = None,
@@ -155,10 +155,8 @@ class ComplexGrids(torch.utils.data.Dataset):
         return len(self.ids)
 
     def __getitem__(self, i: int):
-        coords = self.coords[i]
-        if self.rotate:
-            q, _ = np.linalg.qr(np.random.randn(3, 3))
-            coords = coords @ (q * np.sign(np.linalg.det(q)))
+        i, rotation = i if isinstance(i, tuple) else (i, -1 if self.rotate else 0)
+        coords = transform(self.coords[i], rotation)
         grid = make_grid(coords, self.features[i], self.max_dist, self.spacing)
         grid[..., CHARGE_COLUMN] /= CHARGE_SCALER
         return grid_to_torch(grid)[0], torch.tensor([self.affinities[i]])
@@ -256,6 +254,8 @@ def epoch(model, loader, device, criterion, optimizer,
             x, y = x.to(device), y.to(device)
             out = model(x)
             loss = criterion(out, y)
+            if not torch.isfinite(loss):
+                raise ValueError("nonfinite training/validation loss")
             if training:
                 optimizer.zero_grad()
                 loss.backward()
@@ -264,6 +264,8 @@ def epoch(model, loader, device, criterion, optimizer,
             n += len(y)
             ys.append(y.detach().cpu().numpy().ravel())
             ps.append(out.detach().cpu().numpy().ravel())
+    if not n:
+        raise ValueError("empty training/validation loader")
     y, p = np.concatenate(ys), np.concatenate(ps)
     r = float(np.corrcoef(y, p)[0, 1]) if len(y) > 1 and y.std() and p.std() else float("nan")
     return total / max(n, 1), r
@@ -295,10 +297,21 @@ def main() -> int:
     p.add_argument("--weight-decay", type=float, default=1e-3)
     p.add_argument("--dropout", type=float, default=0.5)
     p.add_argument("--workers", type=int, default=4)
-    p.add_argument("--rotate", action="store_true", help="augment with random rotations")
+    p.add_argument("--rotation-schedule", choices=SCHEDULES, default=None,
+                   help="default author24: 24 full passes/epoch; single-none and single-random "
+                        "are explicitly reduced-budget transfer schedules")
+    p.add_argument("--rotate", action="store_true",
+                   help="legacy alias for --rotation-schedule single-random")
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
 
+    if args.rotate and args.rotation_schedule not in (None, "single-random"):
+        p.error("--rotate conflicts with the requested --rotation-schedule")
+    schedule = args.rotation_schedule or ("single-random" if args.rotate else "author24")
+    if args.epochs < 1 or args.batch_size < 1 or args.workers < 0:
+        p.error("epochs and batch size must be positive; workers must be nonnegative")
+    if args.freeze_encoder and not args.init_encoder:
+        p.error("--freeze-encoder requires --init-encoder")
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -321,19 +334,21 @@ def main() -> int:
         raise SystemExit("--complexes needs --labels to know what to train on")
 
     if args.complexes:
-        train_ds = ComplexGrids(args.complexes, args.labels, cache=args.cache,
-                                rotate=args.rotate)
+        train_ds = ComplexGrids(args.complexes, args.labels, cache=args.cache)
         val_ds = (ComplexGrids(args.complexes, args.val_labels, cache=args.cache)
                   if args.val_labels else None)
     else:
-        train_ds = HDFGrids(args.train_hdf, rotate=args.rotate)
+        train_ds = HDFGrids(args.train_hdf)
         val_ds = HDFGrids(args.val_hdf) if args.val_hdf else None
     print(f"{len(train_ds)} train"
           + (f", {len(val_ds)} val complexes" if val_ds else " complexes, no validation split"))
-    common = dict(batch_size=args.batch_size, num_workers=args.workers,
-                  pin_memory=(device.type == "cuda"))
-    train_dl = torch.utils.data.DataLoader(train_ds, shuffle=True, **common)
-    val_dl = (torch.utils.data.DataLoader(val_ds, shuffle=False, **common) if val_ds else None)
+    common = dict(num_workers=args.workers, pin_memory=(device.type == "cuda"))
+    sampler = RotationBatchSampler(len(train_ds), args.batch_size, schedule, args.seed)
+    train_dl = torch.utils.data.DataLoader(train_ds, batch_sampler=sampler, **common)
+    val_dl = (torch.utils.data.DataLoader(val_ds, batch_size=args.batch_size,
+                                        shuffle=False, **common) if val_ds else None)
+    print(f"rotation schedule: {schedule}; {len(sampler.rotations)} passes/epoch, "
+          f"{len(sampler)} optimiser updates/epoch", flush=True)
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam([q for q in model.parameters() if q.requires_grad],
@@ -353,7 +368,8 @@ def main() -> int:
         # MSE, so train_loss and train_mse would be the same column; only the standard name is
         # written rather than both.
         row = {"epoch": e, "train_loss": tr_loss, "train_r": tr_r,
-               "val_loss": "", "val_r": ""}
+               "val_loss": "", "val_r": "", "optimizer_steps": len(sampler),
+               "training_presentations": len(train_ds) * len(sampler.rotations)}
         flag = ""
         line = f"epoch {e:>3}  train mse {tr_loss:7.4f} r {tr_r:+.3f}"
         if val_dl:
@@ -380,7 +396,16 @@ def main() -> int:
         "epochs": len(history), "best_epoch": best_epoch, "best_score": best,
         "selected_on": "val_mse" if val_dl else "train_mse",
         "train_complexes": len(train_ds), "val_complexes": len(val_ds) if val_ds else 0,
-        "seed": args.seed, "rotate": bool(args.rotate),
+        "seed": args.seed, "rotate": schedule != "single-none",
+        "rotation_schedule": schedule,
+        "rotations_per_epoch": len(sampler.rotations),
+        "rotation_indices": list(sampler.rotations),
+        "rotation_order": "port cube-group order; original tfbio index order unverified",
+        "optimizer_steps_per_epoch": len(sampler),
+        "optimizer_steps_total": len(sampler) * len(history),
+        "training_presentations_per_epoch": len(train_ds) * len(sampler.rotations),
+        "training_metric": "online MSE/R over augmented training presentations",
+        "validation_rotation": "identity",
         "lr": args.lr, "batch_size": args.batch_size, "weight_decay": args.weight_decay,
         "init_encoder": args.init_encoder, "freeze_encoder": bool(args.freeze_encoder),
         "seconds": round(time.time() - started, 1),
