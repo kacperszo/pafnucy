@@ -7,8 +7,8 @@ they let the gap be taken apart instead of guessed at.
 
 Part 1 needs nothing but three csv files and runs anywhere:
 
-    python port/compare_with_authors.py --ours ../../reference/pafnucy/casf2016.csv \
-        --truth ../../benchmarks/casf2016_coreset.csv
+    python port/compare_with_authors.py --ours reference/casf2016.csv \
+        --truth <csv with complex_id,y_true for CASF-2016>
 
 Part 2 scores the authors' own pocket files with this port. It needs the image, and a directory
 of complexes staged from `tests/data/complexes/` at the upstream commit:

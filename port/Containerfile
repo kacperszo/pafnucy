@@ -12,12 +12,11 @@
 # The reference image (Containerfile.reference) still exists and still emits those goldens, so
 # the comparison can be rerun rather than taken on trust.
 #
-# The weights are committed beside the code as `port/weights.npz` — 49 MB, the seventeen
-# tensors inference actually reads. The authors' TensorFlow checkpoint holds 146 MB because
+# The weights are `port/weights.npz` — 49 MB, the seventeen
+# tensors inference actually reads; not tracked, see below. The authors' TensorFlow checkpoint holds 146 MB because
 # two thirds of it is Adam's slots, which is over GitHub's file limit and useless to us;
-# `extract_reference.py` regenerates the npz from it whenever the derivation needs rechecking.
-# The checkpoint itself stays with upstream: `git fetch upstream && git checkout
-# upstream/master -- results/`.
+# `extract_reference.py` regenerates the npz from it. The checkpoint itself stays with upstream;
+# README.md, section "Weights", has the commands.
 FROM docker.io/mambaorg/micromamba:1.5.8
 
 USER root
@@ -48,10 +47,10 @@ WORKDIR /work
 # Two ways to get it, in order of preference:
 #   1. regenerate from the authors' TensorFlow-1 checkpoint:
 #        podman build -f port/Containerfile.reference -t pafnucy-ref:latest .
-#        podman run --rm -v <ckpt dir>:/ckpt:ro -v $PWD/port:/out:rw,U pafnucy-ref:latest \
-#            python /work/port/extract_reference.py --checkpoint /ckpt/... --out /out/weights.npz
+#        see README.md, section "Weights" (it mounts port/ at /work/port, because the
+#        reference image does not copy the source).
 #      The checkpoint is not in this fork — 146 MB, mostly Adam moments, over GitHub's limit —
-#      so `git fetch upstream` brings it back first.
+#      so it is fetched from the authors' repository first.
 #   2. copy it out of an image that still has one:
 #        podman run --rm -v $PWD/port:/out:rw,U pafnucy-torch:latest cp /work/port/weights.npz /out/
 COPY . /work

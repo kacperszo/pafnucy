@@ -1,7 +1,7 @@
 """Predict affinity for a directory of complexes, with the ported network.
 
 Replaces the authors' `predict.py`, which reads a prepared HDF5 and runs TensorFlow. This
-takes the canonical complex layout the rest of the benchmark uses and does the featurising
+takes a directory of complexes (`<id>/<id>_protein.pdb`, `<id>_ligand.sdf`) and does the featurising
 itself, so nothing has to be staged first.
 
 usage:

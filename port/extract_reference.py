@@ -87,7 +87,7 @@ def dump_golden(checkpoint: str, out: Path, n: int, grid: int, channels: int) ->
     This is the reference the PyTorch port has to reproduce. A synthetic grid rather than real
     complexes on purpose: it removes the featuriser from the comparison entirely, so a
     difference can only come from the network. The featuriser is checked separately, against
-    the same 19-feature grid construction already verified in MD_DL_BA.
+    another implementation of the same 19-feature grid.
 
     `predict.py` reaches the graph through named collections rather than tensor names —
     `input`, `output`, and `kp`, the dropout keep probability which inference pins to 1.0 — so

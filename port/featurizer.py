@@ -1,7 +1,7 @@
 """Pafnucy's atom featuriser and grid, without tfbio.
 
 `tfbio` is the authors' own package. It was published on a conda channel that no longer
-resolves, and nothing in this repo or in MD_DL_BA — which uses the same 19 features — carries
+resolves, and nothing in this repo carries
 a reimplementation. So this is written from scratch and settled by measurement: the repo ships
 `tests/data/dataset/*.hdf`, the authors' own featurised output, next to the `tests/data/
 complexes/*.mol2` it was made from. `compare_featurizer.py` requires this to reproduce those

@@ -14,11 +14,10 @@ boundary is the one the authors drew in their own graph, between the `fully_conn
 
 Two ways in. `--train-hdf` takes the HDF5 the authors' preparation produces — one dataset per
 complex, shape (N_atoms, 3 + 19), affinity in an attribute. `--complexes` with `--labels` takes a
-directory of complexes and a csv instead, which is what the harness hands a trainer, and
+directory of complexes and a csv instead, which is the layout `predict_complexes.py` reads, and
 featurises through `predict_complexes.read_complex` so training and inference cannot diverge.
 
-Outputs follow the contract in `harness/training.py`: `model.pt`, `history.csv` and
-`summary.json`.
+Outputs are `model.pt`, `history.csv` and `summary.json`.
 
 usage:
     python train.py --complexes /data --labels /splits/train.csv \
@@ -88,8 +87,7 @@ class HDFGrids(torch.utils.data.Dataset):
 class ComplexGrids(torch.utils.data.Dataset):
     """Complexes from a directory and a label csv, voxelised on access.
 
-    The same shape as `HDFGrids` and the same grid, reached from the input the harness actually
-    provides. Featurisation goes through `predict_complexes.read_complex`, which is also what
+    The same shape as `HDFGrids` and the same grid, reached from a directory of complexes. Featurisation goes through `predict_complexes.read_complex`, which is also what
     inference uses — Open Babel assigns partial charges over whatever molecule it is handed, so a
     second implementation here would give every atom a different charge and the divergence would
     read as a modest loss of accuracy rather than as a bug.
@@ -164,7 +162,6 @@ class ComplexGrids(torch.utils.data.Dataset):
 
 #: The head, by parameter-name prefix. The authors' own boundary and an unusually clean one:
 #: `features()` is everything up to the last hidden layer and the head is a single Linear(200, 1).
-#: Must agree with `encoder.head` for pafnucy.torch in harness/registry.toml.
 HEAD_PREFIXES = ("output",)
 
 
@@ -176,7 +173,7 @@ def is_head(name: str) -> bool:
 def read_encoder(path: str) -> dict:
     """Load an encoder file, accepting either shape it arrives in.
 
-    `gnnb encoder split` writes `{"encoder": {...}, "encoder_params": n, ...}`; a bare state dict
+    An encoder-only file is `{"encoder": {...}, ...}`; a bare state dict
     turns up when someone points this at a whole checkpoint. This function exists because the
     first version did not have it: reading the wrapped form as a state dict took `"encoder"` for
     a tensor name and failed with `KeyError: 'encoder'` several frames from the cause.
@@ -207,7 +204,7 @@ def transfer_encoder(model: Pafnucy, path: str, freeze: bool) -> None:
     if head_keys:
         raise SystemExit(
             f"{path} carries {len(head_keys)} head tensors ({head_keys[:3]}). That is a whole "
-            f"checkpoint, not an encoder — cut it with `gnnb encoder split` first, or the "
+            f"checkpoint, not an encoder — pass a file holding encoder tensors only, or the "
             f"fine-tune starts from the old task's head."
         )
     encoder = state
@@ -237,7 +234,7 @@ def epoch(model, loader, device, criterion, optimizer,
     default) sits inside `features()` — on the three dense layers of the encoder — so a plain
     `model.train(True)` would re-sample the frozen representation on every step. That is a
     defensible regulariser and a different experiment: `--freeze-encoder` is meant to be the
-    trainable analogue of `gnnb probe`, which fits against the deterministic embedding. Until
+    trainable analogue of fitting a probe against the deterministic embedding. Until
     2026-09-24 this function did exactly that, because it had no way of knowing the encoder
     was frozen.
     """
@@ -277,7 +274,7 @@ def main() -> int:
                    help="the authors' prepared HDF5; or use --complexes with --labels")
     p.add_argument("--val-hdf", default=None)
     p.add_argument("--complexes", default=None,
-                   help="directory of <id>/ complexes, as the harness binds at /data")
+                   help="directory of <id>/ complexes (mounted at /data in the container)")
     p.add_argument("--labels", default=None, help="csv with complex_id,y_true")
     p.add_argument("--val-labels", dest="val_labels", default=None)
     p.add_argument("--cache", default=None,
@@ -364,7 +361,7 @@ def main() -> int:
     for e in range(1, args.epochs + 1):
         tr_loss, tr_r = epoch(model, train_dl, device, criterion, optimizer,
                               frozen_encoder=bool(args.freeze_encoder))
-        # The first five keys are the harness's standard history columns. Pafnucy's loss *is*
+        # The first five keys are the generic history columns. Pafnucy's loss *is*
         # MSE, so train_loss and train_mse would be the same column; only the standard name is
         # written rather than both.
         row = {"epoch": e, "train_loss": tr_loss, "train_r": tr_r,

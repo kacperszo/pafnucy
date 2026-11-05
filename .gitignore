@@ -1,12 +1,13 @@
 # Extracted from the published checkpoint by port/extract_reference.py; regenerate rather
-# than commit (weights.npz is 150 MB).
+# than commit (see "Weights" in README.md). weights.npz itself is 49 MB and is NOT tracked.
 port/reference/
 *.npz
 __pycache__/
 
 # The authors' TensorFlow checkpoint: 146 MB, two thirds of it Adam's optimizer slots, and
-# over GitHub's 100 MB file limit. The weights inference needs are committed as
-# port/weights.npz instead. To re-derive them, or to rerun port/verify_port.py against the
-# original graph, fetch the checkpoint back:
+# over GitHub's 100 MB file limit. Neither it nor the weights inference needs (port/weights.npz,
+# ignored by *.npz above) is in this repository; README.md, section "Weights", says how to
+# regenerate them. To fetch the checkpoint back:
+#     git remote add upstream https://gitlab.com/cheminfIBB/pafnucy
 #     git fetch upstream && git checkout upstream/master -- results/
 results/*.data-*
