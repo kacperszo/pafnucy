@@ -11,3 +11,6 @@ __pycache__/
 #     git remote add upstream https://gitlab.com/cheminfIBB/pafnucy
 #     git fetch upstream && git checkout upstream/master -- results/
 results/*.data-*
+
+# local assistant settings: hold absolute paths from the machine they were written on
+.claude/
